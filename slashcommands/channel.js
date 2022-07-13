@@ -1,10 +1,11 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { CommandInteraction, MessageEmbed } = require("discord.js");
-const CONSTANT = require("../helper/const")
+const CONSTANT = require("../helper/const");
+const myCache = require("../helper/cache");
 require("dotenv").config()
 
 module.exports = {
-    commandName: "channel",
+    commandName: "check",
     description: "Output channels without description",
 
     data: null,
@@ -20,10 +21,7 @@ module.exports = {
      */
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
-        const channels = await interaction.guild.channels.fetch();
-        const selected = channels.filter((channel) => (
-            channel.type == "GUILD_TEXT" && !channel.topic && channel.parentId != CONSTANT.CHANNEL.PARENT
-        )).map((value) => (value.id));
+        const selected = myCache.get("ChannelsWithoutTopic")
         let counter = 0
         const limit = 40;
         const msgArray = []
