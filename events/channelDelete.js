@@ -17,8 +17,9 @@ module.exports = {
             const tmp = myCache.get("ChannelsWithoutTopic");
             tmp.splice(index, 1);
             myCache.set("ChannelsWithoutTopic", tmp);
-            if (!myCache.has("GuildSetting")) return
-            const targetChannel = deleteChannel.guild.channels.cache.get(myCache.get("GuildSetting"));
+            const channelExists = myCache.get("GuildSetting").notification_channel;
+            if (!channelExists) return
+            const targetChannel = newChannel.guild.channels.cache.get(channelExists);
             if (!targetChannel) return
             return targetChannel.send({
                 embeds:[

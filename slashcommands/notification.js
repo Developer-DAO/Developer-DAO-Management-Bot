@@ -32,7 +32,18 @@ module.exports = {
         await updateDoc(guildRef, {
             notification_channel: targetChannel.id
         })
-        myCache.set("GuildSetting", targetChannel.id)
+
+        if (targetChannel.id == myCache.get("GuildSetting").notification_channel){
+            return interaction.reply({
+                content: sprintf("<#%s> is set as Notification Channel", targetChannel.id),
+                ephemeral: true
+            })
+        }
+        
+        myCache.set("GuildSetting", {
+            ...myCache.get("GuildSetting"),
+            notification_channel: targetChannel.id
+        })
         await targetChannel.send({
             content: "This channel has been set as Notification Channel"
         })

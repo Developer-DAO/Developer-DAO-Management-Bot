@@ -5,7 +5,8 @@ const { initializeApp } = require('firebase/app')
 const { getFirestore, setDoc, getDoc, doc} = require("firebase/firestore");
 const myCache = require('../helper/cache');
 const logger = require("../helper/logger");
-const CONSTANT = require("../helper/const")
+const CONSTANT = require("../helper/const");
+const { stickyMsgHandler } = require('../stickymessage/handler');
 require("dotenv").config()
 
 module.exports = {
@@ -34,17 +35,40 @@ module.exports = {
         const guildRef = doc(db, "Guild", process.env.GUILDID);
         const guildSnap = await getDoc(guildRef);
         if (guildSnap.exists()){
-            myCache.set("ChannelsWithoutTopic", guildSnap.data().channelsWithoutTopic);
-            myCache.set("GuildSetting", guildSnap.data().notification_channel)
+            myCache.mset([
+                { key: "ChannelsWithoutTopic", val: guildSnap.data().channelsWithoutTopic },
+                { key: "GuildSetting", val: {
+                    notification_channel: guildSnap.data().notification_channel,
+                    introduction_channel: guildSnap.data().introduction_channel
+                }},
+                { key: "OnboardingSchedule", val: guildSnap.data().onboarding_schedule ?? [], ttl: 60}
+            ])
         }else{
             const channels = guild.channels.cache;
             const selected = channels.filter((channel) => (
                 channel.type == "GUILD_TEXT" && !channel.topic && channel.parentId != CONSTANT.CHANNEL.PARENT
             )).map((value) => (value.id));
+            const channelInformInit = {
+                notification_channel: null,
+                introduction_channel: null
+            }
             await setDoc(doc(db, "Guild", process.env.GUILDID), {
-                channelsWithoutTopic: selected
+                channelsWithoutTopic: selected,
+                ...channelInformInit
             });
-            myCache.set("ChannelsWithoutTopic", selected);
+
+            myCache.mset([
+                { key: "ChannelsWithoutTopic", val: selected },
+                { key: "GuildSetting", val: channelInformInit },
+                { key: "OnboardingSchedule", val: [], ttl: 60}
+            ])
+            logger.info("Database initiated.")
+        }
+
+        const stickMsgChannel = guild.channels.cache.get(myCache.get("GuildSetting").introduction_channel);
+
+        if (stickMsgChannel) {
+            stickyMsgHandler(stickMsgChannel, true);
         }
 
         try{

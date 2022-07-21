@@ -14,6 +14,8 @@ const client = new discord.Client({ intents: [
 
 client.commands = new discord.Collection();
 client.auto = new discord.Collection();
+client.buttons = new discord.Collection();
+
 
 const slashCommandFilesPath = path.join(process.cwd(), "slashcommands");
 const slashCommandFiles = fs.readdirSync(slashCommandFilesPath).filter((file) => file.endsWith(".js"));
@@ -26,6 +28,18 @@ for (const file of slashCommandFiles){
     slashCommands.push(command.data.toJSON());
     //Create a set pair, (commandName, commandPackage), very usefull in events
     client.commands.set(command.data.name, command);
+}
+
+const buttonFilesPath = path.join(process.cwd(), "button");
+const buttonFiles = fs.readdirSync(buttonFilesPath).filter((file) => file.endsWith(".js"));
+
+//Load button
+for (const file of buttonFiles){
+    const button = require(path.join(buttonFilesPath, file));
+    //Our self-defined customId is an array
+    for(const id of button.customId){
+        client.buttons.set(id, button);
+    }
 }
 
 const eventsFilesPath = path.join(process.cwd(), "events");

@@ -35,5 +35,19 @@ module.exports = {
                 return logger.error(`User: ${interaction.user.username} Error: ${err.name} occurs when executing ${interaction.commandName} command. Msg: ${err.message} Stack: ${err.stack}`);
             }
         }
+
+        if(interaction.isButton()){
+
+            const button = interaction.client.buttons.get(interaction.customId)
+
+            if(!button) return;
+
+            try{
+                await button.execute(interaction);
+            }catch(err){
+                //console.error(err)
+                return logger.error(`User: ${interaction.user.username} Error: ${err.name} occurs when interacting ${interaction.customId} button. Msg: ${err.message} Stack: ${err.stack}`);
+            }
+        }
     }
 }

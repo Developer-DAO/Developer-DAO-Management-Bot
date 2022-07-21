@@ -3,7 +3,8 @@ const CHANNEL = Object.freeze({
 })
 
 const ROLES = Object.freeze({
-    ALLOW: ["993496364958896168"]
+    //ALLOW: ["993496364958896168"]
+    ALLOW: ["936768434895749121"]
 })
 
 const EMBED_STRING = Object.freeze({
@@ -11,4 +12,20 @@ const EMBED_STRING = Object.freeze({
     TITLE: "Hi, D_Ds in %s Channel!"
 })
 
-module.exports = { CHANNEL, ROLES, EMBED_STRING }
+const CONTENT = Object.freeze({
+    INTRODUCTION: "Hi, I am onboarding assistant.... Click the following button to check the latest onboarding call and talk with our team member in advance!",
+    ONBOARDING: "%(index)d. <t:%(timestamp)s:F>(<t:%(timestamp)s:R>) hosted by \`%(hostName)s\`\n",
+    ONBOARDING_END: "Onboarding calls for this week have ended. We will update the latest ones this Sunday or next Monday."
+}) 
+
+const BOT_NUMERICAL_VALUE = Object.freeze({
+    STICKY_MSG_INTERNAL: 1
+})
+
+module.exports = { 
+    CHANNEL, 
+    ROLES, 
+    EMBED_STRING, 
+    CONTENT, 
+    BOT_NUMERICAL_VALUE 
+}
