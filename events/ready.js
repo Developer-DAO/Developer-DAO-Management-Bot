@@ -2,11 +2,13 @@ const { REST } = require('@discordjs/rest');
 const { Routes } = require('discord-api-types/v9');
 const { Client } = require("discord.js");
 const { initializeApp } = require('firebase/app')
-const { getFirestore, setDoc, getDoc, doc} = require("firebase/firestore");
+const { getFirestore, setDoc, getDoc, doc, updateDoc} = require("firebase/firestore");
+const { stickyMsgHandler } = require('../stickymessage/handler');
 const myCache = require('../helper/cache');
 const logger = require("../helper/logger");
 const CONSTANT = require("../helper/const");
-const { stickyMsgHandler } = require('../stickymessage/handler');
+const { checkOnboardingSchedule } = require('../helper/util');
+
 require("dotenv").config()
 
 module.exports = {
@@ -35,13 +37,13 @@ module.exports = {
         const guildRef = doc(db, "Guild", process.env.GUILDID);
         const guildSnap = await getDoc(guildRef);
         if (guildSnap.exists()){
+            await checkOnboardingSchedule(guildSnap.data().onboarding_schedule ?? []);
             myCache.mset([
                 { key: "ChannelsWithoutTopic", val: guildSnap.data().channelsWithoutTopic },
                 { key: "GuildSetting", val: {
                     notification_channel: guildSnap.data().notification_channel,
                     introduction_channel: guildSnap.data().introduction_channel
-                }},
-                { key: "OnboardingSchedule", val: guildSnap.data().onboarding_schedule ?? [], ttl: 60}
+                }}
             ])
         }else{
             const channels = guild.channels.cache;
@@ -60,10 +62,16 @@ module.exports = {
             myCache.mset([
                 { key: "ChannelsWithoutTopic", val: selected },
                 { key: "GuildSetting", val: channelInformInit },
-                { key: "OnboardingSchedule", val: [], ttl: 60}
+                { key: "OnboardingSchedule", val: [], ttl: CONSTANT.BOT_NUMERICAL_VALUE.ONBOARDING_SCHEDULE_UPDATE_INTERNAL}
             ])
             logger.info("Database initiated.")
         }
+
+        myCache.on("expired", async(key, value) => {
+            if (key == "OnboardingSchedule"){
+                await checkOnboardingSchedule(value)
+            }
+        })
 
         const stickMsgChannel = guild.channels.cache.get(myCache.get("GuildSetting").introduction_channel);
 

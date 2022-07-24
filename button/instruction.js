@@ -1,4 +1,4 @@
-const { ButtonInteraction,  } = require("discord.js")
+const { ButtonInteraction, MessageEmbed } = require("discord.js")
 const { fetchOnboardingSchedule } = require("../helper/util");
 require('dotenv').config();
 
@@ -11,7 +11,7 @@ module.exports = {
         switch(interaction.customId){
             case this.customId[0]:
                 return interaction.reply({
-                    content: fetchOnboardingSchedule(),
+                    embeds: [fetchOnboardingSchedule()],
                     ephemeral: true
                 })
             case this.customId[1]:

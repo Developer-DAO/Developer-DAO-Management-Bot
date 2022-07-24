@@ -42,6 +42,19 @@ for (const file of buttonFiles){
     }
 }
 
+const autoCompleteFilesPath = path.join(process.cwd(), 'autocomplete');
+const autoCompleteFiles = fs.readdirSync(autoCompleteFilesPath).filter((file) => file.endsWith(".js"))
+
+for (const file of autoCompleteFiles){
+    const auto = require(path.join(autoCompleteFilesPath, file));
+    for (const command of auto.attachedCommand){
+        if (auto.options.length == 0) continue;
+        for (const option of auto.options){
+            client.auto.set(`${command}${option}`, auto)
+        }
+    }
+}
+
 const eventsFilesPath = path.join(process.cwd(), "events");
 const eventsFiles = fs.readdirSync(eventsFilesPath).filter((file) => file.endsWith(".js"));
 

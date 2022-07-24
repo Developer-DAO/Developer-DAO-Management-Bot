@@ -1,5 +1,6 @@
 const CHANNEL = Object.freeze({
-    PARENT: "887310076321345576"
+    PARENT: "887310076321345576",
+    ONBOARDING: "907424324733009920"
 })
 
 const ROLES = Object.freeze({
@@ -14,18 +15,49 @@ const EMBED_STRING = Object.freeze({
 
 const CONTENT = Object.freeze({
     INTRODUCTION: "Hi, I am onboarding assistant.... Click the following button to check the latest onboarding call and talk with our team member in advance!",
-    ONBOARDING: "%(index)d. <t:%(timestamp)s:F>(<t:%(timestamp)s:R>) hosted by \`%(hostName)s\`\n",
-    ONBOARDING_END: "Onboarding calls for this week have ended. We will update the latest ones this Sunday or next Monday."
+    ONBOARDING: "%(index)d. <t:%(timestamp)s:F>(<t:%(timestamp)s:R>) hosted by <@%(hostId)s>. Event => [here](<%(eventLink)s>)\n",
+    ONBOARDING_GOINGON: "%(index)d. <t:%(timestamp)s:F>(<t:%(timestamp)s:R>) hosted by <@%(hostId)s> has started in <#%(channelId)s>)\n",
+    ONBOARDING_END: "Onboarding calls for this week have ended. We will update the latest ones this Sunday or next Monday.",
+    ONBOARDING_OPTION: "%(index)d. %(timestamp)s hosted by %(hostName)s"
 }) 
 
 const BOT_NUMERICAL_VALUE = Object.freeze({
-    STICKY_MSG_INTERNAL: 1
+    STICKY_MSG_INTERNAL: 1,
+    ONBOARDING_SCHEDULE_UPDATE_INTERNAL: 30,
+    ONBOARDING_DURATION: 60
 })
+
+const WEEK = Object.freeze([
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday"
+])
+
+const MONTH = Object.freeze([
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December'
+])
 
 module.exports = { 
     CHANNEL, 
     ROLES, 
     EMBED_STRING, 
     CONTENT, 
-    BOT_NUMERICAL_VALUE 
+    BOT_NUMERICAL_VALUE,
+    WEEK,
+    MONTH
 }

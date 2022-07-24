@@ -49,5 +49,18 @@ module.exports = {
                 return logger.error(`User: ${interaction.user.username} Error: ${err.name} occurs when interacting ${interaction.customId} button. Msg: ${err.message} Stack: ${err.stack}`);
             }
         }
+
+        if (interaction.isAutocomplete()){
+            const option = interaction.options.getFocused(true).name;
+            const command = interaction.client.auto.get(`${interaction.commandName}${option}`);
+
+            if (!command || !option) return;
+
+            try {
+                await command.execute(interaction);
+            } catch (err) {
+                return logger.error(`User: ${interaction.user.username} Error: ${err.name} occurs when executing ${interaction.commandName} command. Msg: ${err.message} Stack: ${err.stack}`);
+            }
+        }
     }
 }
