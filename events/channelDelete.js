@@ -1,6 +1,6 @@
 const { GuildChannel, DMChannel, MessageEmbed } = require("discord.js")
 const myCache = require('../helper/cache');
-const CONSTANT = require("../helper/const");
+const { updateDb } = require("../helper/util");
 const { sprintf } = require("sprintf-js");
 require("dotenv").config()
 
@@ -11,15 +11,17 @@ module.exports = {
      * @param  { DMChannel | GuildChannel } deleteChannel
      */
     async execute( deleteChannel ) {
-        if (!myCache.has("ChannelsWithoutTopic")) return
-        const index = myCache.get("ChannelsWithoutTopic").indexOf(deleteChannel.id);
-        if (index != -1){
-            const tmp = myCache.get("ChannelsWithoutTopic");
-            tmp.splice(index, 1);
+        if (!myCache.has("ChannelsWithoutTopic") || !myCache.has("GuildSetting")) return
+        
+        const tmp = myCache.get("ChannelsWithoutTopic");
+        if (tmp[deleteChannel.id]){
+            delete tmp[deleteChannel.id];
+            
+            await updateDb("channelsWithoutTopic", tmp);
             myCache.set("ChannelsWithoutTopic", tmp);
-            const channelExists = myCache.get("GuildSetting").notification_channel;
-            if (!channelExists) return
-            const targetChannel = newChannel.guild.channels.cache.get(channelExists);
+
+            const notificationChannelId = myCache.get("GuildSetting").notification_channel;
+            const targetChannel = deleteChannel.guild.channels.cache.get(notificationChannelId);
             if (!targetChannel) return
             return targetChannel.send({
                 embeds:[
@@ -29,5 +31,6 @@ module.exports = {
                 ]
             })
         }
+        
     }
 }

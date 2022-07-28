@@ -2,7 +2,7 @@ const { REST } = require('@discordjs/rest');
 const { Routes } = require('discord-api-types/v9');
 const { Client } = require("discord.js");
 const { initializeApp } = require('firebase/app')
-const { getFirestore, setDoc, getDoc, doc, updateDoc} = require("firebase/firestore");
+const { getFirestore, setDoc, getDoc, doc} = require("firebase/firestore");
 const { stickyMsgHandler } = require('../stickymessage/handler');
 const myCache = require('../helper/cache');
 const logger = require("../helper/logger");
@@ -28,32 +28,32 @@ module.exports = {
         //Cache guild members
         await guild.channels.fetch()
 
-        const clientId = client.user.id;
-        const rest = new REST({ version: '9' }).setToken(process.env.TOKEN);
         const app = initializeApp({
             projectId: process.env.FIRESTORE_PROJECTID,
         }, "devDAO");
         const db = getFirestore(app);
         const guildRef = doc(db, "Guild", process.env.GUILDID);
         const guildSnap = await getDoc(guildRef);
+
         if (guildSnap.exists()){
             await checkOnboardingSchedule(guildSnap.data().onboarding_schedule ?? []);
             myCache.mset([
                 { key: "ChannelsWithoutTopic", val: guildSnap.data().channelsWithoutTopic },
                 { key: "GuildSetting", val: {
                     notification_channel: guildSnap.data().notification_channel,
-                    introduction_channel: guildSnap.data().introduction_channel
+                    introduction_channel: guildSnap.data().introduction_channel,
+                    achieve_category_channel: guildSnap.data().achieve_category_channel
                 }}
             ])
         }else{
-            const channels = guild.channels.cache;
-            const selected = channels.filter((channel) => (
-                channel.type == "GUILD_TEXT" && !channel.topic && channel.parentId != CONSTANT.CHANNEL.PARENT
-            )).map((value) => (value.id));
+
             const channelInformInit = {
                 notification_channel: null,
-                introduction_channel: null
+                introduction_channel: null,
+                achieve_category_channel: []
             }
+            const selected = {}
+
             await setDoc(doc(db, "Guild", process.env.GUILDID), {
                 channelsWithoutTopic: selected,
                 ...channelInformInit
@@ -78,6 +78,9 @@ module.exports = {
         if (stickMsgChannel) {
             stickyMsgHandler(stickMsgChannel, true);
         }
+
+        const clientId = client.user.id;
+        const rest = new REST({ version: '9' }).setToken(process.env.TOKEN);
 
         try{
             if (process.env.ENV == "production"){

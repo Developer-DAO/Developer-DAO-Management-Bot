@@ -1,7 +1,7 @@
 const { GuildChannel, DMChannel, MessageEmbed } = require("discord.js");
 const { sprintf } = require("sprintf-js");
+const { updateDb } = require("../helper/util");
 const myCache = require('../helper/cache');
-const CONSTANT = require("../helper/const");
 require("dotenv").config()
 
 module.exports = {
@@ -12,23 +12,25 @@ module.exports = {
      * @param  { DMChannel | GuildChannel } newChannel
      */
     async execute(oldChannel, newChannel) {
-        if (!myCache.has("ChannelsWithoutTopic")) return
+        if (!myCache.has("ChannelsWithoutTopic") || !myCache.has("GuildSetting")) return
+        const achieveChannels = myCache.get("GuildSetting").achieve_category_channel;
         if (
             oldChannel.type == "GUILD_TEXT" 
             && !oldChannel.topic 
-            && oldChannel.parentId != CONSTANT.CHANNEL.PARENT
+            && !achieveChannels.includes(oldChannel.parentId)
             && newChannel.type == "GUILD_TEXT" 
             && newChannel.topic 
-            && newChannel.parentId != CONSTANT.CHANNEL.PARENT
+            && !achieveChannels.includes(newChannel.parentId)
         ){
-            const index = myCache.get("ChannelsWithoutTopic").indexOf(oldChannel.id);
-            if (index != -1){
-                const tmp = myCache.get("ChannelsWithoutTopic");
-                tmp.splice(index, 1);
+            const tmp = myCache.get("ChannelsWithoutTopic");
+            if (tmp[oldChannel.id]){
+                delete tmp[oldChannel.id];
+
+                await updateDb("channelsWithoutTopic", tmp);
                 myCache.set("ChannelsWithoutTopic", tmp);
-                const channelExists = myCache.get("GuildSetting").notification_channel;
-                if (!channelExists) return
-                const targetChannel = newChannel.guild.channels.cache.get(channelExists);
+
+                const notificationChannelId = myCache.get("GuildSetting").notification_channel;
+                const targetChannel = newChannel.guild.channels.cache.get(notificationChannelId);
                 if (!targetChannel) return
                 return targetChannel.send({
                     embeds:[
@@ -43,29 +45,37 @@ module.exports = {
         if (
             oldChannel.type == "GUILD_TEXT" 
             && oldChannel.topic 
-            && oldChannel.parentId != CONSTANT.CHANNEL.PARENT
+            && !achieveChannels.includes(oldChannel.parentId)
             && newChannel.type == "GUILD_TEXT" 
             && !newChannel.topic 
-            && newChannel.parentId != CONSTANT.CHANNEL.PARENT
+            && !achieveChannels.includes(newChannel.parentId)
         ){
-            const index = myCache.get("ChannelsWithoutTopic").indexOf(oldChannel.id);
-            if (index == -1){
-                myCache.set("ChannelsWithoutTopic", [
-                    ...myCache.get("ChannelsWithoutTopic"),
-                    newChannel.id
-                ]);
-                const channelExists = myCache.get("GuildSetting").notification_channel;
-                if (!channelExists) return
-                const targetChannel = newChannel.guild.channels.cache.get(channelExists);
-                if (!targetChannel) return
-                return targetChannel.send({
-                    embeds:[
-                        new MessageEmbed()
-                            .setTitle("Bad News")
-                            .setDescription(sprintf("<#%s> has removed its description!", newChannel.id))
-                    ]
-                })
+            
+            const data = {
+                ...myCache.get("ChannelsWithoutTopic"),
+                [newChannel.id]: {
+                    channelName: newChannel.name,
+                    parentName: newChannel.parentId,
+                    status: false,
+                    messageId: "",
+                    timestamp: 0
+                }
             }
+
+            await updateDb("channelsWithoutTopic", data);
+            myCache.set("ChannelsWithoutTopic", data);
+
+            const notificationChannelId = myCache.get("GuildSetting").notification_channel;
+            const targetChannel = newChannel.guild.channels.cache.get(notificationChannelId);
+            if (!targetChannel) return
+            return targetChannel.send({
+                embeds:[
+                    new MessageEmbed()
+                        .setTitle("Bad News")
+                        .setDescription(sprintf("<#%s> has removed its description!", newChannel.id))
+                ]
+            })
+            
         }
         
     }

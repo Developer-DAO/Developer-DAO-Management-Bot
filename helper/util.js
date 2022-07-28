@@ -100,4 +100,12 @@ async function checkOnboardingSchedule(value){
     }
 }
 
-module.exports = { awaitWrap, isValidHttpUrl, memberRolesCheck, fetchOnboardingSchedule, convertTimeStamp, checkOnboardingSchedule }
+async function updateDb(attribute, data){
+    const db = getFirestore(getApp("devDAO"));
+    const guildRef = doc(db, "Guild", process.env.GUILDID);
+    await updateDoc(guildRef, {
+        [attribute]: data
+    });
+}
+
+module.exports = { awaitWrap, isValidHttpUrl, memberRolesCheck, fetchOnboardingSchedule, convertTimeStamp, checkOnboardingSchedule, updateDb }

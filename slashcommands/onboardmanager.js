@@ -58,6 +58,7 @@ module.exports = {
 
         if (interaction.options.getSubcommand() == "set_channel"){
             const targetChannel = interaction.options.getChannel("introduction_channel");
+
             if (targetChannel.id == myCache.get("GuildSetting").introduction_channel){
                 return interaction.reply({
                     content: sprintf("<#%s> is set as Introduction Channel", targetChannel.id),
@@ -82,6 +83,11 @@ module.exports = {
 
         if (interaction.options.getSubcommand() == "set_schedule"){
             const scheduleLink = interaction.options.getString("schedule_link");
+
+            if (!myCache.get("GuildSetting").introduction_channel) return interaction.reply({
+                content: `Please set up introduction channel first using \`/${this.commandName}\`.`,
+                ephemeral: true
+            });
 
             if (!isValidHttpUrl(scheduleLink)) return interaction.reply({
                 content: "Please input a valid message link.",
@@ -162,6 +168,11 @@ module.exports = {
 
         if (interaction.options.getSubcommand() == "remove_schedule"){
             const index = parseInt(interaction.options.getString("schedule_list"));
+
+            if (!myCache.get("GuildSetting").introduction_channel) return interaction.reply({
+                content: `Please set up introduction channel first using \`/${this.commandName}\`.`,
+                ephemeral: true
+            });
 
             if (!index) return interaction.reply({
                 content: "Please choose a valid schedule.",

@@ -13,18 +13,26 @@ const EMBED_STRING = Object.freeze({
     TITLE: "Hi, D_Ds in %s Channel!"
 })
 
+const LINK = Object.freeze({
+    DISCORD_MSG: "https://discord.com/channels/%(guildId)s/%(channelId)s/%(messageId)s",
+})
+
 const CONTENT = Object.freeze({
     INTRODUCTION: "Hi, I am onboarding assistant.... Click the following button to check the latest onboarding call and talk with our team member in advance!",
     ONBOARDING: "%(index)d. <t:%(timestamp)s:F>(<t:%(timestamp)s:R>) hosted by <@%(hostId)s>. Event => [here](<%(eventLink)s>)\n",
     ONBOARDING_GOINGON: "%(index)d. <t:%(timestamp)s:F>(<t:%(timestamp)s:R>) hosted by <@%(hostId)s> has started in <#%(channelId)s>)\n",
     ONBOARDING_END: "Onboarding calls for this week have ended. We will update the latest ones this Sunday or next Monday.",
-    ONBOARDING_OPTION: "%(index)d. %(timestamp)s hosted by %(hostName)s"
+    ONBOARDING_OPTION: "%(index)d. %(timestamp)s hosted by %(hostName)s",
+    CHANNEL_STATUS_MSG_SENT: "> **Channel**: <#%(channelId)s> **State**: [Message Sent](%(messageLink)s) **Sending Date**: <t:%(timestamp)d:R>\n",
+    CHANNEL_STATUS_MSG_UNSENT: "> **Channel**: <#%(channelId)s> **State**: Message Unsent\n"
 }) 
 
 const BOT_NUMERICAL_VALUE = Object.freeze({
     STICKY_MSG_INTERNAL: 1,
     ONBOARDING_SCHEDULE_UPDATE_INTERNAL: 30,
-    ONBOARDING_DURATION: 60
+    ONBOARDING_DURATION: 60,
+    CHANNEL_VOLUME_PER_MSG: 30,
+    CHANNEL_CHECK_BUTTON_COLLECTOR_INTERNAL: 2 * 60 * 1000
 })
 
 const WEEK = Object.freeze([
@@ -56,6 +64,7 @@ module.exports = {
     CHANNEL, 
     ROLES, 
     EMBED_STRING, 
+    LINK,
     CONTENT, 
     BOT_NUMERICAL_VALUE,
     WEEK,
