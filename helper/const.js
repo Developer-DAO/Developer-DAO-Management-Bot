@@ -1,5 +1,5 @@
+//to be dynamic to-do
 const CHANNEL = Object.freeze({
-    PARENT: "887310076321345576",
     ONBOARDING: "907424324733009920"
 })
 
@@ -17,6 +17,7 @@ const LINK = Object.freeze({
     DISCORD_MSG: "https://discord.com/channels/%(guildId)s/%(channelId)s/%(messageId)s",
 })
 
+//to-do predefined msg to be changed
 const CONTENT = Object.freeze({
     INTRODUCTION: "Hi, I am onboarding assistant.... Click the following button to check the latest onboarding call and talk with our team member in advance!",
     ONBOARDING: "%(index)d. <t:%(timestamp)s:F>(<t:%(timestamp)s:R>) hosted by <@%(hostId)s>. Event => [here](<%(eventLink)s>)\n",
@@ -24,15 +25,16 @@ const CONTENT = Object.freeze({
     ONBOARDING_END: "Onboarding calls for this week have ended. We will update the latest ones this Sunday or next Monday.",
     ONBOARDING_OPTION: "%(index)d. %(timestamp)s hosted by %(hostName)s",
     CHANNEL_STATUS_MSG_SENT: "> **Channel**: <#%(channelId)s> **State**: [Message Sent](%(messageLink)s) **Sending Date**: <t:%(timestamp)d:R>\n",
-    CHANNEL_STATUS_MSG_UNSENT: "> **Channel**: <#%(channelId)s> **State**: Message Unsent\n"
+    CHANNEL_STATUS_MSG_UNSENT: "> **Channel**: <#%(channelId)s> **State**: Message Unsent\n",
+    CHANNEL_WITHOUT_PARENT_PARENTNAME: "Without Category"
 }) 
 
 const BOT_NUMERICAL_VALUE = Object.freeze({
     STICKY_MSG_INTERNAL: 1,
     ONBOARDING_SCHEDULE_UPDATE_INTERNAL: 30,
     ONBOARDING_DURATION: 60,
-    CHANNEL_VOLUME_PER_MSG: 30,
-    CHANNEL_CHECK_BUTTON_COLLECTOR_INTERNAL: 2 * 60 * 1000
+    CHANNEL_VOLUME_PER_MSG: 20,
+    CHANNEL_CHECK_BUTTON_COLLECTOR_INTERNAL: 1 * 60 * 1000
 })
 
 const WEEK = Object.freeze([

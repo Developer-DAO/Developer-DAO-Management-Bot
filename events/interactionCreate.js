@@ -14,12 +14,13 @@ module.exports = {
     async execute (interaction){
         //interaction => CommandInteraction
         if (interaction.isCommand()){
-            if (!memberRolesCheck(CONSTANT.ROLES.ALLOW, interaction.member)){
-                return interaction.reply({
-                    content: "Sorry, you are not allowed to run this command",
-                    ephemeral: true
-                });
-            }
+            //to-do command permission
+            // if (!memberRolesCheck(CONSTANT.ROLES.ALLOW, interaction.member)){
+            //     return interaction.reply({
+            //         content: "Sorry, you are not allowed to run this command",
+            //         ephemeral: true
+            //     });
+            // }
             //Get command object through the property of interaction, coomandName
             const command = interaction.client.commands.get(interaction.commandName);
             
@@ -30,7 +31,10 @@ module.exports = {
                 await command.execute(interaction);
             }catch (err){
                 if (interaction.deferred){
-                    interaction.editReply("Unknown error occurs, please contact admins.")
+                    interaction.editReply("Unknown error occurs, please contact admins.");
+                }
+                if (interaction.commandName = "check") {
+                    interaction.editReply("Unknown error occurs, please contact admins.");
                 }
                 return logger.error(`User: ${interaction.user.username} Error: ${err.name} occurs when executing ${interaction.commandName} command. Msg: ${err.message} Stack: ${err.stack}`);
             }

@@ -28,6 +28,22 @@ async function awaitWrap(promise, renamedObject = "result", renamedError = "erro
         });
 }
 
+async function awaitWrapSendRequest(promise) {
+    return promise
+        .then((data) => {
+            return {
+                [renamedObject]: Math.floor(data.createdTimestamp / 1000),
+                [renamedError]: null
+            }
+        })
+        .catch((err) => {
+            return {
+                [renamedObject]: null,
+                [renamedError]: 1
+            }
+        });
+}
+
 function isValidHttpUrl(string){
     let url;
     try {
@@ -108,4 +124,15 @@ async function updateDb(attribute, data){
     });
 }
 
-module.exports = { awaitWrap, isValidHttpUrl, memberRolesCheck, fetchOnboardingSchedule, convertTimeStamp, checkOnboardingSchedule, updateDb }
+function commandRunCheck(){
+    let content = null;
+    if (myCache.has("ChannelsWithoutTopic")){
+        if (Object.keys(myCache.get("ChannelsWithoutTopic")).length == 0) 
+            content = "Please init channel management first using \`/channelmanager init\`";
+    }else{
+        content = "Please init channel management first using \`/channelmanager init\`";
+    }
+    return content;
+}
+
+module.exports = { awaitWrap, awaitWrapSendRequest, isValidHttpUrl, memberRolesCheck, fetchOnboardingSchedule, convertTimeStamp, checkOnboardingSchedule, updateDb, commandRunCheck }
