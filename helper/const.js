@@ -21,7 +21,7 @@ const LINK = Object.freeze({
 const CONTENT = Object.freeze({
     INTRODUCTION: "Hi, I am onboarding assistant.... Click the following button to check the latest onboarding call and talk with our team member in advance!",
     ONBOARDING: "%(index)d. <t:%(timestamp)s:F>(<t:%(timestamp)s:R>) hosted by <@%(hostId)s>. Event => [here](<%(eventLink)s>)\n",
-    ONBOARDING_GOINGON: "%(index)d. <t:%(timestamp)s:F>(<t:%(timestamp)s:R>) hosted by <@%(hostId)s> has started in <#%(channelId)s>)\n",
+    ONBOARDING_GOINGON: "%(index)d. <t:%(timestamp)s:F>(<t:%(timestamp)s:R>) hosted by <@%(hostId)s> has started%(channelInform)s.\n",
     ONBOARDING_END: "Onboarding calls for this week have ended. We will update the latest ones this Sunday or next Monday.",
     ONBOARDING_OPTION: "%(index)d. %(timestamp)s hosted by %(hostName)s",
     THREAD_WELCOME_MSG: "",

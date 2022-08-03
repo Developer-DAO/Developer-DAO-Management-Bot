@@ -67,6 +67,8 @@ function fetchOnboardingSchedule(){
     if (myCache.get("OnboardingSchedule").length == 0) {
         description = CONSTANT.CONTENT.ONBOARDING_END;
     }else {
+        let { onboarding_channel } = myCache.get("GuildSetting");
+        onboarding_channel = onboarding_channel ? ` in <#${onboarding_channel}>` : '';
         const time = Math.floor((new Date().getTime()) / 1000);
         description = myCache.get("OnboardingSchedule")
             .sort((a, b) => a.timestamp - b.timestamp)
@@ -75,7 +77,7 @@ function fetchOnboardingSchedule(){
                     return sprintf(CONSTANT.CONTENT.ONBOARDING_GOINGON, {
                         ...value,
                         index: index + 1,
-                        channelId: CONSTANT.CHANNEL.ONBOARDING
+                        channelInform: onboarding_channel
                     })
                 }
                 return sprintf(CONSTANT.CONTENT.ONBOARDING, {

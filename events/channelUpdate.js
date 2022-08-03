@@ -14,7 +14,7 @@ module.exports = {
      */
     async execute(oldChannel, newChannel) {
         if (!myCache.has("ChannelsWithoutTopic") || !myCache.has("GuildSetting")) return
-        const achieveChannels = myCache.get("GuildSetting").achieve_category_channel;
+        const achieveChannels = myCache.get("GuildSetting").archive_category_channel;
         let cached = myCache.get("ChannelsWithoutTopic");
         if (
             oldChannel.type == "GUILD_TEXT" 

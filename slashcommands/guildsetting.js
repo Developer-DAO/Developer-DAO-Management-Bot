@@ -1,9 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { CommandInteraction } = require("discord.js");
-const { getApp } = require('firebase/app')
-const { getFirestore, doc, updateDoc } = require('firebase/firestore');
-const { sprintf } = require('sprintf-js');
+const { CommandInteraction, MessageEmbed } = require("discord.js");
 const myCache = require("../helper/cache");
+const { updateDb } = require('../helper/util');
 require("dotenv").config();
 
 module.exports = {
@@ -17,20 +15,15 @@ module.exports = {
             .setName(this.commandName)
             .setDescription(this.description)
             .addSubcommand(command =>
-                command.setName("notification_channel")
-                    .setDescription("Set notification channel for the guild")
-                        .addChannelOption(option =>
-                            option.setName("channel")
+                command.setName("access")
+                    .setDescription("Set access role of this bot")
+                        .addRoleOption(option =>
+                            option.setName("role")
                                 .setDescription("The channel for notification")
                                 .setRequired(true)))
             .addSubcommand(command =>
-                command.setName("achieve_category_channel")
-                    .setDescription("Set achieve parent channel for the guild")
-                        .addChannelOption(option =>
-                            option.setName("channel")
-                                .setDescription("The parent channel for achieve")
-                                .setRequired(true)))
-            
+                command.setName("read")
+                    .setDescription("Read current guild setting"))
     },
 
     /**
@@ -38,66 +31,41 @@ module.exports = {
      */
     async execute(interaction) {
 
-        if (interaction.options.getSubcommand() == "notification_channel"){
-
-            const targetChannel = interaction.options.getChannel("channel");
-
-            if (targetChannel.id == myCache.get("GuildSetting").notification_channel){
-                return interaction.reply({
-                    content: sprintf("<#%s> is set as Notification Channel", targetChannel.id),
-                    ephemeral: true
-                })
-            }
-
-            const db = getFirestore(getApp("devDAO"));
-            const guildRef = doc(db, "Guild", process.env.GUILDID);
-            await updateDoc(guildRef, {
-                notification_channel: targetChannel.id
+        if (interaction.options.getSubcommand() == "access"){
+            const role = interaction.options.getRole("role");
+            let { access_role } = myCache.get("GuildSetting");
+            if (access_role.includes(role.id)) return interaction.reply({
+                content: `${role.name} is added into access role set`,
+                ephemeral: true 
             })
-            
+
+            access_role = [...access_role, role.id];            
+            await updateDb("access_role", access_role);
             myCache.set("GuildSetting", {
                 ...myCache.get("GuildSetting"),
-                notification_channel: targetChannel.id
+                access_role: access_role
             })
-            await targetChannel.send({
-                content: "This channel has been set as Notification Channel"
-            })
+
             return interaction.reply({
-                content: sprintf("<#%s> is set as Notification Channel", targetChannel.id),
-                ephemeral: true
+                content: `${role.name} is added into access role set`,
+                ephemeral: true 
             })
         }
 
-        if (interaction.options.getSubcommand() == "achieve_category_channel"){
-            const targetChannel = interaction.options.getChannel("channel");
-            if (targetChannel.type != "GUILD_CATEGORY") return interaction.reply({
-                content: "Sorry, channel you chose is not a \`Category Channel\`",
-                ephemeral: true
-            })
-
-            const currentCache = myCache.get("GuildSetting");
-            if (currentCache.achieve_category_channel.includes(targetChannel.id)){
-                return interaction.reply({
-                    content: sprintf("<#%s> has been added into achieve parent channels", targetChannel.id),
-                    ephemeral: true
-                })
-            }
-            const newAchieveParentChannel = [...currentCache.achieve_category_channel, targetChannel.id];
-
-            const db = getFirestore(getApp("devDAO"));
-            const guildRef = doc(db, "Guild", process.env.GUILDID);
-            await updateDoc(guildRef, {
-                achieve_category_channel: newAchieveParentChannel
-            })
-
-            myCache.set("GuildSetting", {
-                ...currentCache,
-                achieve_category_channel: newAchieveParentChannel
-            })
+        if (interaction.options.getSubcommand() == "read"){
+            let { access_role } = myCache.get("GuildSetting");
+            access_role = access_role.map(value => interaction.guild.roles.cache.get(value)?.name ?? "unfetchable");
+            if (access_role.length == 0) access_role = 'everyone';
+            else access_role = access_role.toString().replaceAll(',', '');
 
             return interaction.reply({
-                content: sprintf("<#%s> has been added into achieve parent channels", targetChannel.id),
-                ephemeral: true
+                embeds: [
+                    new MessageEmbed()
+                        .setTitle(`${interaction.guild.name} Guild Setting`)
+                        .addFields([
+                            { name: "Access Role", value: `\`${access_role}\``, inline: true }
+                        ])
+                ]
             })
         }
         

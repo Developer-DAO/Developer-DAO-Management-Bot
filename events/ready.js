@@ -42,7 +42,9 @@ module.exports = {
                 { key: "GuildSetting", val: {
                     notification_channel: guildSnap.data().notification_channel,
                     introduction_channel: guildSnap.data().introduction_channel,
-                    achieve_category_channel: guildSnap.data().achieve_category_channel
+                    onboarding_channel: guildSnap.data().onboarding_channel,
+                    archive_category_channel: guildSnap.data().archive_category_channel,
+                    access_role: guildSnap.data().access_role ?? []
                 }}
             ])
         }else{
@@ -50,7 +52,9 @@ module.exports = {
             const channelInformInit = {
                 notification_channel: null,
                 introduction_channel: null,
-                achieve_category_channel: []
+                onboarding_channel: null,
+                archive_category_channel: [],
+                access_role: []
             }
             const selected = {}
 

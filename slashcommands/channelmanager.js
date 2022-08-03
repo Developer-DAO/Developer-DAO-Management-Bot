@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
+const { ChannelType } = require("discord-api-types/payloads/v10");
 const { CommandInteraction, MessageEmbed, MessageActionRow, MessageButton } = require("discord.js");
-const { commandRunCheck, updateDb, awaitWrapSendRequest, awaitWrap } = require('../helper/util');
+const { commandRunCheck, updateDb, awaitWrapSendRequest, awaitWrap, updateDb } = require('../helper/util');
 const { sprintf } = require('sprintf-js');
 const CONSTANT = require("../helper/const");
 const myCache = require("../helper/cache");
@@ -17,6 +18,30 @@ module.exports = {
         this.data = new SlashCommandBuilder()
             .setName(this.commandName)
             .setDescription(this.description)
+            .addSubcommandGroup(group =>
+                group.setName("set")
+                    .setDescription("Onboarding management setting")
+                    .addSubcommand(command =>
+                        command.setName("notification")
+                            .setDescription("Set a notification channel")
+                            .addChannelOption(option =>
+                                option.setName("channel")
+                                    .setDescription("The channel for notification")
+                                    .addChannelTypes(ChannelType.GuildText)
+                                    .setRequired(true)))
+                    .addSubcommand(command =>
+                        command.setName("archive")
+                            .setDescription("Add an archive channel category")
+                            .addChannelOption(option =>
+                                option.setName("channel")
+                                    .setDescription("The channel category for archive")
+                                    .addChannelTypes(ChannelType.GuildCategory)
+                                    .setRequired(true)))
+                
+            )
+            .addSubcommand(command =>
+                command.setName("read")
+                    .setDescription("Read current settings of channel management"))
             .addSubcommand(command =>
                 command.setName("init")
                     .setDescription("Initiate channel management"))
@@ -39,12 +64,87 @@ module.exports = {
      * @param  {CommandInteraction} interaction
      */
     async execute(interaction) {
+
+        if (interaction.options.getSubcommandGroup() == "set"){
+            const subCommandName = interaction.options.getSubcommand();
+            if (subCommandName == "notification"){
+                const targetChannel = interaction.options.getChannel("channel");
+
+                if (targetChannel.id == myCache.get("GuildSetting").notification_channel){
+                    return interaction.reply({
+                        content: sprintf("<#%s> is set as Notification Channel", targetChannel.id),
+                        ephemeral: true
+                    })
+                }
+
+                await updateDb("notification_channel", targetChannel.id)
+                
+                myCache.set("GuildSetting", {
+                    ...myCache.get("GuildSetting"),
+                    notification_channel: targetChannel.id
+                })
+                await targetChannel.send({
+                    content: "This channel has been set as Notification Channel"
+                })
+                return interaction.reply({
+                    content: sprintf("<#%s> is set as Notification Channel", targetChannel.id),
+                    ephemeral: true
+                })
+            }
+
+            if (subCommandName == "archive"){
+
+                const targetChannel = interaction.options.getChannel("channel");
+                const currentCache = myCache.get("GuildSetting");
+
+                if (currentCache.archive_category_channel.includes(targetChannel.id)){
+                    return interaction.reply({
+                        content: sprintf("<#%s> has been added into achieve parent channels", targetChannel.id),
+                        ephemeral: true
+                    })
+                }
+                const newAchieveParentChannel = [...currentCache.archive_category_channel, targetChannel.id];
+                await updateDb("archive_category_channel", newAchieveParentChannel);
+
+                myCache.set("GuildSetting", {
+                    ...currentCache,
+                    archive_category_channel: newAchieveParentChannel
+                })
+
+                return interaction.reply({
+                    content: sprintf("<#%s> has been added into achieve parent channels", targetChannel.id),
+                    ephemeral: true
+                })
+            }
+        }
+
+        if (interaction.options.getSubcommand() == "read"){
+            let { notification_channel, archive_category_channel } = myCache.get("GuildSetting");
+            notification_channel = notification_channel ? `<#${notification_channel}>` : "Unavailable";
+
+            archive_category_channel = archive_category_channel.map(value => `<#${value}>\n`);
+            if (archive_category_channel.length == 0) archive_category_channel = "Unavailable";
+            else archive_category_channel = archive_category_channel.toString().replaceAll(',', '');
+            
+            return interaction.reply({
+                embeds: [
+                    new MessageEmbed()
+                        .setName(`${interaction.guild.name} Channel Manager Setting`)
+                        .addFields([
+                            { name: "Notification Channel", value: `<#${notification_channel}>`, inline: true },
+                            { name: "Archive Channels", value: archive_category_channel, inline: true}
+                        ])
+                ],
+                ephemeral: true
+            })
+        }
+
         await interaction.deferReply({ ephemeral: true });
         const selected = myCache.get("ChannelsWithoutTopic");
 
         if (interaction.options.getSubcommand() == "init"){
             if (Object.keys(selected).length == 0) {
-                const achieveChannels = myCache.get("GuildSetting").achieve_category_channel;
+                const achieveChannels = myCache.get("GuildSetting").archive_category_channel;
                 if (achieveChannels.length != 0){
                     await interaction.followUp({
                         content: "Channel init starts, please wait for a while."
@@ -92,7 +192,7 @@ module.exports = {
                         await btnInteraction.deferUpdate();
                         if (btnInteraction.customId == "yes"){
                             return interaction.editReply({
-                                content: "Please use \`/set achieve_category_channel\` command to add an achieve category channel",
+                                content: "Please use \`/set archive_category_channel\` command to add an achieve category channel",
                                 components: []
                             })
                         }else{
@@ -307,7 +407,6 @@ module.exports = {
                                     ])
                             ]
                         })
-
                     }else{
                         return interaction.editReply({
                             content: "Thanks for using this service, have a nice day!"
@@ -315,8 +414,6 @@ module.exports = {
                     }
                 }
             });
-
-
         }
 
         //to-do unchecked
