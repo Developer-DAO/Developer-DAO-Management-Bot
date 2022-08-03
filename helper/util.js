@@ -28,18 +28,20 @@ async function awaitWrap(promise, renamedObject = "result", renamedError = "erro
         });
 }
 
-async function awaitWrapSendRequest(promise) {
+async function awaitWrapSendRequest(promise, channelId) {
     return promise
         .then((data) => {
             return {
-                [renamedObject]: Math.floor(data.createdTimestamp / 1000),
-                [renamedError]: null
+                error: false,
+                value: Math.floor(data.createdTimestamp / 1000),
+                messageId: data.id,
+                channelId: channelId
             }
         })
         .catch((err) => {
             return {
-                [renamedObject]: null,
-                [renamedError]: 1
+                error: true,
+                value: channelId
             }
         });
 }

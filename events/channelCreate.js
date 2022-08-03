@@ -1,7 +1,7 @@
-const { GuildChannel, DMChannel, MessageEmbed } = require("discord.js")
+const { GuildChannel, DMChannel, MessageEmbed, MessageActionRow, MessageButton } = require("discord.js")
 const myCache = require('../helper/cache');
 const { updateDb } = require("../helper/util");
-const sprintf = require("sprintf-js").sprintf
+const CONSTANT = require("../helper/const");
 require("dotenv").config()
 
 module.exports = {
@@ -18,19 +18,21 @@ module.exports = {
             && !newChannel.topic 
             && !achieveChannels.includes(newChannel.parentId)
         ){
-            const data = {
-                ...myCache.get("ChannelsWithoutTopic"),
-                [newChannel.id]: {
-                    channelName: newChannel.name,
-                    parentName: newChannel.parentId,
-                    status: false,
-                    messageId: "",
-                    timestamp: 0
-                }
+            const parentId = newChannel.parentId ?? CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTID;
+            const parentName = parentId != 
+                CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTID ? newChannel.parent.name : CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTNAME;
+            let cached = myCache.get("ChannelsWithoutTopic");
+            cached[parentId][newChannel.id] = {
+                channelName: newChannel.name,
+                status: false,
+                messageId: "",
+                timestamp: 0,
+                lastMessageTimestamp: 0
             }
+            cached[parentId]["parentName"] = parentName;
             
-            await updateDb("channelsWithoutTopic", data);
-            myCache.set("ChannelsWithoutTopic", data);
+            await updateDb("channelsWithoutTopic", cached);
+            myCache.set("ChannelsWithoutTopic", cached);
 
             const notificationChannelId = myCache.get("GuildSetting").notification_channel;
             const targetChannel = newChannel.guild.channels.cache.get(notificationChannelId);
@@ -38,11 +40,29 @@ module.exports = {
             return targetChannel.send({
                 embeds:[
                     new MessageEmbed()
-                        .setTitle("Bad News")
-                        .setDescription(sprintf("<#%s> was created without description!", newChannel.id))
+                        .setTitle("Channal Report")
+                        .addFields([
+                            { name: "Parent", value: `${parentName} (${parentId})` },
+                            { name: "Channel", value: `<#${newChannel.id}>` },
+                            { name: "Action", value: "Creation" }
+                        ])
+                ],
+                components: [
+                    new MessageActionRow()
+                        .addComponents([
+                            new MessageButton()
+                                    .setCustomId("send")
+                                    .setLabel("Send Notification Message")
+                                    .setEmoji("📨")
+                                    .setStyle("PRIMARY"),
+                                new MessageButton()
+                                    .setCustomId("delete")
+                                    .setLabel("Delete this record")
+                                    .setEmoji("❌")
+                                    .setStyle("SECONDARY")                                
+                        ])
                 ]
             })
-            
         }
     }
 }

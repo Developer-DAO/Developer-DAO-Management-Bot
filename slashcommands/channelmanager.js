@@ -1,6 +1,6 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { CommandInteraction, MessageEmbed, MessageActionRow, MessageButton } = require("discord.js");
-const { commandRunCheck, updateDb, awaitWrapSendRequest } = require('../helper/util');
+const { commandRunCheck, updateDb, awaitWrapSendRequest, awaitWrap } = require('../helper/util');
 const { sprintf } = require('sprintf-js');
 const CONSTANT = require("../helper/const");
 const myCache = require("../helper/cache");
@@ -144,7 +144,7 @@ module.exports = {
 
                         if (channels[channelId].status){
                             const messageLink = sprintf(CONSTANT.LINK.DISCORD_MSG, {
-                                guildId: process.env.GUILDID,
+                                guildId: interaction.guild.id,
                                 channelId: channelId,
                                 messageId: channels[channelId].messageId,
                             })
@@ -213,11 +213,16 @@ module.exports = {
                 time: CONSTANT.BOT_NUMERICAL_VALUE.CHANNEL_CHECK_BUTTON_COLLECTOR_INTERNAL
             });
 
+            let changedComponents = dmMsg.components;
+            changedComponents[0].components.forEach((value) => {
+                value.disabled = true;
+            }) 
+
             buttonCollector.on("end", async(collected) => {
                 if (collected.size == 0){
                     return interaction.editReply({
                         content: "Sorry, time out. Please run this command again.",
-                        components: []
+                        components: changedComponents
                     })
                 }else{
                     const btnInteraction = collected.first();
@@ -225,20 +230,82 @@ module.exports = {
                     if (btnInteraction.customId == "yes"){
                         await interaction.editReply({
                             content: "Broadcast is going on, please wait patiently.",
-                            components: []
+                            components: changedComponents
                         });
                         const predefinedMsg = sprintf(CONSTANT.EMBED_STRING.DESCRIPTION, `<t:${Math.floor(new Date().getTime() / 1000) + 3600 * 48}:R>`);
                         const sendMsgRequestArray = [];
-                        const unfetchableChannelArray = [];
-                        const cached = myCache.get("ChannelsWithoutTopic");
+                        const unfetchableChannelNameArray = [];
+                        let unfetchableChannelNameContent = '';
+                        let failSendMsgChannelIdContent = '';
+                        let cached = myCache.get("ChannelsWithoutTopic");
+                        let broadcastResult = {};
                         Object.keys(cached).forEach((parentId) => {
                             const channels = cached[parentId];
-                            const requestArray = Object.keys(channels).forEach((channelId) => {
+                            Object.keys(channels).forEach((channelId) => {
                                 const channel = interaction.guild.channels.cache.get(channelId);
-                                if (!channel) unfetchableChannelArray.push(channels[channelId].channelName)
+                                broadcastResult[channelId] = '';
+                                if (!channel) unfetchableChannelNameArray.push(channels[channelId].channelName);
+                                sendMsgRequestArray.push(
+                                    awaitWrapSendRequest(
+                                        channel.send({ content: predefinedMsg }),
+                                        channel.id
+                                    )
+                                )
                             })
-                            //to-do
-                            // const requests = 
+                        })
+
+                        let {result, error} = await awaitWrap(Promise.all(sendMsgRequestArray));
+
+                        if (error) interaction.editReply({
+                            content: `Broadcast failed, error occured: \`${error}\``,
+                            components: changedComponents
+                        })
+
+                        result.forEach((value) => {
+                            if (value.error) failSendMsgChannelIdContent += `> <#${value.value}>\n`;
+                            else broadcastResult[value.channelId] = {
+                                messageId: value.messageId,
+                                timestamp: value.value
+                            };
+                        });
+                        if (unfetchableChannelNameArray.length == 0) unfetchableChannelNameContent = '-';
+                        else unfetchableChannelNameArray.forEach((value) => {
+                            unfetchableChannelNameContent += `> \`${value}\`\n`
+                        })
+
+                        cached = myCache.get("ChannelsWithoutTopic");
+                        Object.keys(cached).forEach((parentId) => {
+                            const channels = cached[parentId];
+                            Object.keys(channels).forEach((channelId) => {
+                                if (broadcastResult[channelId]){
+                                    cached[parentId][channelId] = {
+                                        ...cached[parentId][channelId],
+                                        status: true,
+                                        messageId: broadcastResult[channelId].messageId,
+                                        timestamp: broadcastResult[channelId].timestamp,
+                                        lastMessageTimestamp: broadcastResult[channelId].timestamp
+                                    }
+                                }
+                            })
+                        });
+
+                        myCache.set("ChannelsWithoutTopic", cached);
+
+                        await interaction.editReply({
+                            content: "Broadcast is done, please run \`/channelmanager view\` again to check results",
+                            components: changedComponents
+                        })
+
+                        return interaction.followUp({
+                            embeds: [
+                                new MessageEmbed()
+                                    .setName("📣 Broadcast Report")
+                                    .setDescription("**Unfetchable**: The bot cannot fetch information of these channels.\n\n**Unsendable**: The bot cannot send messages to these channels with unknown reason.")
+                                    .addFields([
+                                        { name: "Unfetchable", value: unfetchableChannelNameContent, inline: true },
+                                        { name: "Unfetchable", value: failSendMsgChannelIdContent, inline: true },
+                                    ])
+                            ]
                         })
 
                     }else{
@@ -264,7 +331,7 @@ module.exports = {
                 content: "Sorry, you have to choose an Text channel"
             })
 
-            const parentId = targetChannel.parentId ?? CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTNAME;
+            const parentId = targetChannel.parentId ?? CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTID;
             const cached = myCache.get("ChannelsWithoutTopic");
             let errorFlag = false;
             if(cached[parentId]){
@@ -314,7 +381,7 @@ module.exports = {
             let lastMsgTime;
             if (messages.size == 0) lastMsgTime = 0;
             else lastMsgTime = Math.floor(messages.first().createdTimestamp / 1000);
-            const parentId = channel.parentId ?? CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTNAME;
+            const parentId = channel.parentId ?? CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTID;
             if (parentId in result){
                 result[parentId][channel.id] = {
                     channelName: channel.name,
@@ -326,7 +393,7 @@ module.exports = {
             }else{
                 result[parentId] = {
                     parentName: parentId != 
-                        CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTNAME ? channel.parent.name : "Without Category Channel"
+                        CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTID ? channel.parent.name : CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTNAME
                 };
                 result[parentId][channel.id] = {
                     channelName: channel.name,

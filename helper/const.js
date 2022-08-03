@@ -24,9 +24,11 @@ const CONTENT = Object.freeze({
     ONBOARDING_GOINGON: "%(index)d. <t:%(timestamp)s:F>(<t:%(timestamp)s:R>) hosted by <@%(hostId)s> has started in <#%(channelId)s>)\n",
     ONBOARDING_END: "Onboarding calls for this week have ended. We will update the latest ones this Sunday or next Monday.",
     ONBOARDING_OPTION: "%(index)d. %(timestamp)s hosted by %(hostName)s",
+    THREAD_WELCOME_MSG: "",
     CHANNEL_STATUS_MSG_SENT: "> **Channel**: <#%(channelId)s> **State**: [Message Sent](%(messageLink)s) **Sending Date**: <t:%(timestamp)d:R>\n",
     CHANNEL_STATUS_MSG_UNSENT: "> **Channel**: <#%(channelId)s> **State**: Message Unsent\n",
-    CHANNEL_WITHOUT_PARENT_PARENTNAME: "Without Category"
+    CHANNEL_WITHOUT_PARENT_PARENTID: "0",
+    CHANNEL_WITHOUT_PARENT_PARENTNAME: "Without Category",
 }) 
 
 const BOT_NUMERICAL_VALUE = Object.freeze({

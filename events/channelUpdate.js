@@ -1,7 +1,8 @@
-const { GuildChannel, DMChannel, MessageEmbed } = require("discord.js");
+const { GuildChannel, DMChannel, MessageEmbed, MessageActionRow, MessageButton } = require("discord.js");
 const { sprintf } = require("sprintf-js");
 const { updateDb } = require("../helper/util");
 const myCache = require('../helper/cache');
+const CONSTANT = require("../helper/const");
 require("dotenv").config()
 
 module.exports = {
@@ -14,6 +15,7 @@ module.exports = {
     async execute(oldChannel, newChannel) {
         if (!myCache.has("ChannelsWithoutTopic") || !myCache.has("GuildSetting")) return
         const achieveChannels = myCache.get("GuildSetting").achieve_category_channel;
+        let cached = myCache.get("ChannelsWithoutTopic");
         if (
             oldChannel.type == "GUILD_TEXT" 
             && !oldChannel.topic 
@@ -22,24 +24,31 @@ module.exports = {
             && newChannel.topic 
             && !achieveChannels.includes(newChannel.parentId)
         ){
-            const tmp = myCache.get("ChannelsWithoutTopic");
-            if (tmp[oldChannel.id]){
-                delete tmp[oldChannel.id];
-
-                await updateDb("channelsWithoutTopic", tmp);
-                myCache.set("ChannelsWithoutTopic", tmp);
+            const parentId = oldChannel.parentId ?? CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTID;
+            const parentName = parentId != 
+                CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTID ? oldChannel.parent.name : CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTNAME;
+            if (cached[parentId][oldChannel.id]){
+                delete cached[parentId][oldChannel.id];
+                cached[parentId]["parentName"] = parentName;
+                
+                await updateDb("channelsWithoutTopic", cached);
+                myCache.set("ChannelsWithoutTopic", cached);
 
                 const notificationChannelId = myCache.get("GuildSetting").notification_channel;
-                const targetChannel = newChannel.guild.channels.cache.get(notificationChannelId);
+                const targetChannel = oldChannel.guild.channels.cache.get(notificationChannelId);
                 if (!targetChannel) return
                 return targetChannel.send({
                     embeds:[
                         new MessageEmbed()
-                            .setTitle("Good News")
-                            .setDescription(sprintf("<#%s> has added its description!", newChannel.id))
+                            .setTitle("Channal Report")
+                            .addFields([
+                                { name: "Parent", value: `${parentName} (${parentId})` },
+                                { name: "Channel", value: `<#${oldChannel.id}>` },
+                                { name: "Action", value: "Update with Description" }
+                            ])
                     ]
                 })
-            }
+            }      
         }
 
         if (
@@ -50,20 +59,20 @@ module.exports = {
             && !newChannel.topic 
             && !achieveChannels.includes(newChannel.parentId)
         ){
-            
-            const data = {
-                ...myCache.get("ChannelsWithoutTopic"),
-                [newChannel.id]: {
-                    channelName: newChannel.name,
-                    parentName: newChannel.parentId,
-                    status: false,
-                    messageId: "",
-                    timestamp: 0
-                }
+            const parentId = newChannel.parentId ?? CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTID;
+            const parentName = parentId != 
+                CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTID ? newChannel.parent.name : CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTNAME;
+            cached[parentId][newChannel.id] = {
+                channelName: newChannel.name,
+                status: false,
+                messageId: "",
+                timestamp: 0,
+                lastMessageTimestamp: 0
             }
-
-            await updateDb("channelsWithoutTopic", data);
-            myCache.set("ChannelsWithoutTopic", data);
+            cached[parentId]["parentName"] = parentName;
+            
+            await updateDb("channelsWithoutTopic", cached);
+            myCache.set("ChannelsWithoutTopic", cached);
 
             const notificationChannelId = myCache.get("GuildSetting").notification_channel;
             const targetChannel = newChannel.guild.channels.cache.get(notificationChannelId);
@@ -71,11 +80,29 @@ module.exports = {
             return targetChannel.send({
                 embeds:[
                     new MessageEmbed()
-                        .setTitle("Bad News")
-                        .setDescription(sprintf("<#%s> has removed its description!", newChannel.id))
+                        .setTitle("Channal Report")
+                        .addFields([
+                            { name: "Parent", value: `${parentName} (${parentId})` },
+                            { name: "Channel", value: `<#${newChannel.id}>` },
+                            { name: "Action", value: "Update without description" }
+                        ])
+                ],
+                components: [
+                    new MessageActionRow()
+                        .addComponents([
+                            new MessageButton()
+                                    .setCustomId("send")
+                                    .setLabel("Send Notification Message")
+                                    .setEmoji("📨")
+                                    .setStyle("PRIMARY"),
+                                new MessageButton()
+                                    .setCustomId("delete")
+                                    .setLabel("Delete this record")
+                                    .setEmoji("❌")
+                                    .setStyle("SECONDARY")                                
+                        ])
                 ]
             })
-            
         }
         
     }
