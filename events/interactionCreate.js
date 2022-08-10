@@ -31,10 +31,11 @@ module.exports = {
                 await command.execute(interaction);
             }catch (err){
                 if (interaction.deferred){
-                    interaction.editReply("Unknown error occurs, please contact admins.");
-                }
-                if (interaction.commandName = "check") {
-                    interaction.editReply("Unknown error occurs, please contact admins.");
+                    interaction.editReply({
+                        content: "Unknown error occurs, please contact admins.",
+                        components: [],
+                        button: []
+                    });
                 }
                 return logger.error(`User: ${interaction.user.username} Error: ${err.name} occurs when executing ${interaction.commandName} command. Msg: ${err.message} Stack: ${err.stack}`);
             }

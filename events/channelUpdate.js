@@ -62,12 +62,20 @@ module.exports = {
             const parentId = newChannel.parentId ?? CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTID;
             const parentName = parentId != 
                 CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTID ? newChannel.parent.name : CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTNAME;
+            console.log(oldChannel, newChannel)
+            const messages = await newChannel.messages.fetch({
+                limit: 1
+            });
+            let lastMsgTime;
+            if (messages.size == 0) lastMsgTime = 0;
+            else lastMsgTime = Math.floor(messages.first().createdTimestamp / 1000);
+
             cached[parentId][newChannel.id] = {
                 channelName: newChannel.name,
                 status: false,
                 messageId: "",
                 timestamp: 0,
-                lastMessageTimestamp: 0
+                lastMessageTimestamp: lastMsgTime
             }
             cached[parentId]["parentName"] = parentName;
             
