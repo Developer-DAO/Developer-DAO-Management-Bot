@@ -44,7 +44,8 @@ module.exports = {
                     introduction_channel: guildSnap.data().introduction_channel,
                     onboarding_channel: guildSnap.data().onboarding_channel,
                     birthday_channel: guildSnap.data().birthday_channel,
-                    archive_category_channel: guildSnap.data().archive_category_channel,
+                    archive_category_channel: guildSnap.data().archive_category_channel ?? [],
+                    archive_channels: guildSnap.data().archive_channels ?? [],
                     admin_role: guildSnap.data().admin_role ?? [],
                     admin_member: guildSnap.data().admin_member ?? [],
                     admin_command: guildSnap.data().admin_command ?? []
@@ -58,6 +59,7 @@ module.exports = {
                 onboarding_channel: null,
                 birthday_channel: null,
                 archive_category_channel: [],
+                archive_channels: [],
                 admin_role: [],
                 admin_member: [],
                 admin_command: [] 
@@ -87,8 +89,9 @@ module.exports = {
             const cached = myCache.get("ChannelsWithoutTopic");
             if (Object.keys(cached).length == 0) return;
             const current = Math.floor(new Date().getTime() / 1000);
-            console.log(current, '   ' ,current + 15)
+            console.log(current, '   ' ,current + 15);
             let toBeArchived = [];
+            let moveToArchivePromise = [];
             for (const parentId in cached){
                 const channels = cached[parentId];
                 toBeArchived.push(
@@ -96,16 +99,32 @@ module.exports = {
                         if (channelId == "parentName") return false;
                         if (channels[channelId].timestamp != 0 && current > channels[channelId].timestamp) return true;
                         else return false
-                    }
-                ))
+                    }).map((channelId) => ({
+                        parentId: parentId,
+                        channelId: channelId
+                    }))
+                )
+            };
+            if (toBeArchived.length == 0) return;
+            // 先查看当前所有的归档频道，找最后面的那个，查看还剩下多少可用的频道数目，决定要创建几个额外的归档频道，把归档频道的ID存起来，然后创建好
+            // 使用while来循环，直到所有的频道都放到了归档频道
+            // 必须创建notification频道运行命令之前
+            const { archive_channels, notification_channel } = myCache.get("GuildSetting");
+            let counter = toBeArchived.length;
+            while (counter != 0){
+                const archiveChannelId = _.last(archive_channels);
+                let archiveChannel;
+                if (!archiveChannelId){
+                    
+                }
             }
+            
             toBeArchived.forEach(async(channelId) =>{
                 const targetChannel = guild.channels.cache.get(channelId);
-                const {result, error} = await awaitWrap(targetChannel.setParent("1009073641369108490", {
-                    lockPermissions: true,
+                const {result, error} = await awaitWrap(targetChannel.setParent(null, {
                     reason: "Inactive Channels"
                 }));
-                if (error) console.log(targetChannel.name)
+                if (error) console.log(error)
             })
         }, CONSTANT.BOT_NUMERICAL_VALUE.ARCHIVE_INTERVAL);
 
