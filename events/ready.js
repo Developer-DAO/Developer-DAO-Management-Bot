@@ -43,8 +43,11 @@ module.exports = {
                     notification_channel: guildSnap.data().notification_channel,
                     introduction_channel: guildSnap.data().introduction_channel,
                     onboarding_channel: guildSnap.data().onboarding_channel,
+                    birthday_channel: guildSnap.data().birthday_channel,
                     archive_category_channel: guildSnap.data().archive_category_channel,
-                    access_role: guildSnap.data().access_role ?? []
+                    access_role: guildSnap.data().access_role ?? [],
+                    access_member: guildSnap.data().access_member ?? [],
+                    access_command: guildSnap.data().access_command ?? []
                 }}
             ])
         }else{
@@ -53,8 +56,11 @@ module.exports = {
                 notification_channel: null,
                 introduction_channel: null,
                 onboarding_channel: null,
+                birthday_channel: null,
                 archive_category_channel: [],
-                access_role: []
+                access_role: [],
+                access_member: [],
+                access_command: [] 
             }
             const selected = {}
 

@@ -29,6 +29,15 @@ for (const file of slashCommandFiles){
     //Create a set pair, (commandName, commandPackage), very usefull in events
     client.commands.set(command.data.name, command);
 }
+const choices = slashCommands.map(value => ({
+    name: value.name,
+    value: value.name
+}));
+const commandIndex = slashCommands.findIndex((value) => (value.name == "set"));
+if (commandIndex != -1){
+    //console.log(slashCommands[commandIndex].options[3].options[0].options[0])
+    slashCommands[commandIndex].options[3].options[0].options[0].choices = choices
+}
 
 const buttonFilesPath = path.join(process.cwd(), "button");
 const buttonFiles = fs.readdirSync(buttonFilesPath).filter((file) => file.endsWith(".js"));

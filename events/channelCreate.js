@@ -51,15 +51,15 @@ module.exports = {
                     new MessageActionRow()
                         .addComponents([
                             new MessageButton()
-                                    .setCustomId("send")
-                                    .setLabel("Send Notification Message")
-                                    .setEmoji("📨")
-                                    .setStyle("PRIMARY"),
-                                new MessageButton()
-                                    .setCustomId("delete")
-                                    .setLabel("Delete this record")
-                                    .setEmoji("❌")
-                                    .setStyle("SECONDARY")                                
+                                .setCustomId("send")
+                                .setLabel("Send Notification Message")
+                                .setEmoji("📨")
+                                .setStyle("PRIMARY"),
+                            new MessageButton()
+                                .setCustomId("delete")
+                                .setLabel("Delete this record")
+                                .setEmoji("❌")
+                                .setStyle("SECONDARY")                                
                         ])
                 ]
             })

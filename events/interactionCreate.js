@@ -1,7 +1,8 @@
 const {MessageComponentInteraction, CommandInteraction} = require("discord.js");
 const {memberRolesCheck} = require("../helper/util")
-const CONSTANT = require("../helper/const")
 const logger = require("../helper/logger");
+const myCache = require("../helper/cache");
+const _ = require("lodash");
 require("dotenv").config();
 
 module.exports = {
@@ -14,18 +15,34 @@ module.exports = {
     async execute (interaction){
         //interaction => CommandInteraction
         if (interaction.isCommand()){
-            //to-do command permission
-            // if (!memberRolesCheck(CONSTANT.ROLES.ALLOW, interaction.member)){
-            //     return interaction.reply({
-            //         content: "Sorry, you are not allowed to run this command",
-            //         ephemeral: true
-            //     });
-            // }
             //Get command object through the property of interaction, coomandName
             const command = interaction.client.commands.get(interaction.commandName);
             
+            if (myCache.has("GuildSetting")){
+                const { access_role, access_member, access_command } = myCache.get("GuildSetting");
+                if (access_command.includes(interaction.commandName)){
+                    if (
+                        !access_member.includes(interaction.member.id) 
+                        && _.intersection(access_role, interaction.member.roles.cache.keys()).length == 0
+                    ){
+                        return interaction.reply({
+                            content: "Sorry, you don't have permission to run this command. Please contact community manager.",
+                            ephemeral: true
+                        })
+                    }
+                }
+            }else {
+                return interaction.reply({
+                    content: "Command is initiating, please try again",
+                    ephemeral: true
+                })
+            }
+
             //TODO Need to handle this error
-            if (!command) return;
+            if (!command) return interaction.reply({
+                content: "Sorry, you chose a non-existent command",
+                ephemeral: true
+            })
         
             try{
                 await command.execute(interaction);
@@ -45,7 +62,10 @@ module.exports = {
 
             const button = interaction.client.buttons.get(interaction.customId)
 
-            if(!button) return;
+            if(!button) return interaction.reply({
+                content: "Sorry, you chose a non-existent button.",
+                ephemeral: true
+            })
 
             try{
                 await button.execute(interaction);

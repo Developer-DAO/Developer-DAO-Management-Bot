@@ -356,7 +356,7 @@ module.exports = {
                 timestamp: Math.floor(message.createdTimestamp / 1000)
             }
 
-            await updateDb("channelsWithoutTopic", cached);
+            //await updateDb("channelsWithoutTopic", cached);
             myCache.set("ChannelsWithoutTopic", cached);
             return
         }
