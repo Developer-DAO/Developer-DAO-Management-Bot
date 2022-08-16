@@ -7,7 +7,7 @@ const { stickyMsgHandler } = require('../stickymessage/handler');
 const myCache = require('../helper/cache');
 const logger = require("../helper/logger");
 const CONSTANT = require("../helper/const");
-const { checkOnboardingSchedule } = require('../helper/util');
+const { checkOnboardingSchedule, awaitWrap } = require('../helper/util');
 
 require("dotenv").config()
 
@@ -38,16 +38,16 @@ module.exports = {
         if (guildSnap.exists()){
             await checkOnboardingSchedule(guildSnap.data().onboarding_schedule ?? []);
             myCache.mset([
-                { key: "ChannelsWithoutTopic", val: guildSnap.data().channelsWithoutTopic },
+                { key: "ChannelsWithoutTopic", val: guildSnap.data().channelsWithoutTopic ?? {} },
                 { key: "GuildSetting", val: {
                     notification_channel: guildSnap.data().notification_channel,
                     introduction_channel: guildSnap.data().introduction_channel,
                     onboarding_channel: guildSnap.data().onboarding_channel,
                     birthday_channel: guildSnap.data().birthday_channel,
                     archive_category_channel: guildSnap.data().archive_category_channel,
-                    access_role: guildSnap.data().access_role ?? [],
-                    access_member: guildSnap.data().access_member ?? [],
-                    access_command: guildSnap.data().access_command ?? []
+                    admin_role: guildSnap.data().admin_role ?? [],
+                    admin_member: guildSnap.data().admin_member ?? [],
+                    admin_command: guildSnap.data().admin_command ?? []
                 }}
             ])
         }else{
@@ -58,9 +58,9 @@ module.exports = {
                 onboarding_channel: null,
                 birthday_channel: null,
                 archive_category_channel: [],
-                access_role: [],
-                access_member: [],
-                access_command: [] 
+                admin_role: [],
+                admin_member: [],
+                admin_command: [] 
             }
             const selected = {}
 
@@ -82,6 +82,32 @@ module.exports = {
                 await checkOnboardingSchedule(value)
             }
         })
+
+        setInterval(async() => {
+            const cached = myCache.get("ChannelsWithoutTopic");
+            if (Object.keys(cached).length == 0) return;
+            const current = Math.floor(new Date().getTime() / 1000);
+            console.log(current, '   ' ,current + 15)
+            let toBeArchived = [];
+            for (const parentId in cached){
+                const channels = cached[parentId];
+                toBeArchived.push(
+                    ...Object.keys(channels).filter((channelId) => {
+                        if (channelId == "parentName") return false;
+                        if (channels[channelId].timestamp != 0 && current > channels[channelId].timestamp) return true;
+                        else return false
+                    }
+                ))
+            }
+            toBeArchived.forEach(async(channelId) =>{
+                const targetChannel = guild.channels.cache.get(channelId);
+                const {result, error} = await awaitWrap(targetChannel.setParent("1009073641369108490", {
+                    lockPermissions: true,
+                    reason: "Inactive Channels"
+                }));
+                if (error) console.log(targetChannel.name)
+            })
+        }, CONSTANT.BOT_NUMERICAL_VALUE.ARCHIVE_INTERVAL);
 
         const stickMsgChannel = guild.channels.cache.get(myCache.get("GuildSetting").introduction_channel);
 

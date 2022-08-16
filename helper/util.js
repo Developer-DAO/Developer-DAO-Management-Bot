@@ -139,4 +139,26 @@ function commandRunCheck(){
     return content;
 }
 
-module.exports = { awaitWrap, awaitWrapSendRequest, isValidHttpUrl, memberRolesCheck, fetchOnboardingSchedule, convertTimeStamp, checkOnboardingSchedule, updateDb, commandRunCheck }
+function getParentInform(parentId, parentObj){
+    const id = parentId ?? CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTID;
+    const name = id != CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTID 
+        ? parentObj.name : CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTNAME;
+    return {
+        parentId: id,
+        parentName: name
+    }
+}
+
+
+module.exports = { 
+    awaitWrap, 
+    awaitWrapSendRequest, 
+    isValidHttpUrl, 
+    memberRolesCheck, 
+    fetchOnboardingSchedule, 
+    convertTimeStamp, 
+    checkOnboardingSchedule, 
+    updateDb, 
+    commandRunCheck, 
+    getParentInform,
+}

@@ -1,6 +1,6 @@
 const { GuildChannel, DMChannel, MessageEmbed, MessageActionRow, MessageButton } = require("discord.js")
 const myCache = require('../helper/cache');
-const { updateDb } = require("../helper/util");
+const { updateDb, getParentInform } = require("../helper/util");
 const CONSTANT = require("../helper/const");
 require("dotenv").config()
 
@@ -18,9 +18,7 @@ module.exports = {
             && !newChannel.topic 
             && !achieveChannels.includes(newChannel.parentId)
         ){
-            const parentId = newChannel.parentId ?? CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTID;
-            const parentName = parentId != 
-                CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTID ? newChannel.parent.name : CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTNAME;
+            const {parentId, parentName} = getParentInform(newChannel.parentId, newChannel.parent);
             let cached = myCache.get("ChannelsWithoutTopic");
             cached[parentId][newChannel.id] = {
                 channelName: newChannel.name,

@@ -1,9 +1,10 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { CommandInteraction, MessageEmbed } = require("discord.js");
 const { ChannelType } = require("discord-api-types/payloads/v10");
-const myCache = require("../helper/cache");
 const { updateDb } = require('../helper/util');
 const { sprintf } = require('sprintf-js');
+
+const myCache = require("../helper/cache");
 require("dotenv").config();
 
 module.exports = {
@@ -118,15 +119,18 @@ module.exports = {
                         .addFields([
                             {
                                 name: "Admin Role",
-                                value: roleField
+                                value: roleField,
+                                inline: true
                             },
                             {
                                 name: "Admin Member",
-                                value: memberField
+                                value: memberField,
+                                inline: true
                             },
                             {
                                 name: "Admin Command",
-                                value: commandField
+                                value: commandField,
+                                inline: true
                             },
                         ])
                 ],
@@ -159,64 +163,77 @@ module.exports = {
             let removeReply = '\`%s\` is removed successfully';
             let reply;
             const cached = myCache.get("GuildSetting");
-            const {admin_role, admin_member, admin_command} = cached;
-
-            if (subCommand == "add"){
-                const options = [
-                    {
-                        name: "admin_role",
-                        addValue: interaction.options.getRole("role").id,
-                        addPadding: interaction.options.getRole("role").name,
-                        removeValue: interaction.options.getString("role"),
-                        removePadding: interaction.guild.roles.cache.get(interaction.options.getString("role"))?.name ?? "Unknown Role"
-                    },
-                    {
-                        name: "admin_member",
-                        addValue: interaction.options.getRole("member").id,
-                        addPadding: interaction.options.getRole("member").name,
-                        removeValue: interaction.options.getString("member"),
-                        removePadding: interaction.guild.members.cache.get(interaction.options.getString("member"))?.displayName ?? "Unknown Member"
-                    },
-                    {
-                        name: "admin_command",
-                        addValue: interaction.options.getString("command"),
-                        addPadding: interaction.options.getString("command"),
-                        removeValue: interaction.options.getString("command"),
-                        removePadding: interaction.options.getString("command")
-                    }
-                ];
-                [admin_role, admin_member, admin_command].forEach(async(cachedValue, index) => {
-                    const {name, addValue, removeValue, addPadding, removePadding} = options[index];
-                    if (subCommandGroup == name){
-                        if (subCommand == "add"){
-                            if (!cachedValue.includes(addValue)){
-                                const update = [...cachedValue, addValue];
-                                await updateDb(name, update);
-                                myCache.set("GuildSetting", {
-                                    ...cached,
-                                    [name]: update
-                                })
-                            }
-                            reply = sprintf(addReply, addPadding)
-                        }else{
-                            if (!cachedValue.includes(removeValue)) reply = "Please feed a valid input.";
-                            else{
-                                const update = cachedValue.filter((value) => (value != removeValue));
-                                await updateDb(name, update);
-                                myCache.set("GuildSetting", {
-                                    ...cached,
-                                    [name]: update
-                                })
-                            }
-                            reply = sprintf(removeReply, removePadding)
-                        }
-                    }
-                })
-
-                return interaction.followUp({
-                    content: reply
-                })
+            const { admin_role, admin_member, admin_command } = cached;
+            const options = {
+                admin_role: {
+                    cachedValue: admin_role,
+                    addvalue: (interaction) => ({
+                        value: interaction.options.getRole("role")?.id,
+                        padding: interaction.options.getRole("role")?.name
+                    }),
+                    removeValue: (interaction) => ({
+                        value: interaction.options.getString("role"),
+                        padding: interaction.guild.roles.cache.get(interaction.options.getString("role"))?.name ?? "Unknown Role"
+                    })
+                },
+                admin_member: {
+                    cachedValue: admin_member,
+                    addvalue: (interaction) => ({
+                        value: interaction.options.getUser("member")?.id,
+                        padding: interaction.options.getUser("member")?.username,
+                        bot: interaction.options.getUser("member")?.bot
+                    }),
+                    removeValue: (interaction) => ({
+                        value: interaction.options.getString("member"),
+                        padding: interaction.guild.members.cache.get(interaction.options.getString("member"))?.displayName ?? "Unknown Member"
+                    })
+                },
+                admin_command: {
+                    cachedValue: admin_command,
+                    addvalue: (interaction) => ({
+                        value: interaction.options.getString("command"),
+                        padding: interaction.options.getString("command")
+                    }),
+                    removeValue: (interaction) => ({
+                        value: interaction.options.getString("command"),
+                        padding: interaction.options.getString("command")
+                    })
+                }
             }
+            if (subCommand == "add"){
+                const { cachedValue } = options[subCommandGroup];
+                const { value, padding, bot } = options[subCommandGroup]["addvalue"](interaction);
+                if (bot) return interaction.followUp({
+                    content: "Sorry, you cannot set a bot as an admin."
+                })
+                if (!cachedValue.includes(value)){
+                    const update = [...cachedValue, value];
+                    await updateDb(subCommandGroup, update);
+                    myCache.set("GuildSetting", {
+                        ...cached,
+                        [subCommandGroup]: update
+                    })
+                }
+                reply = sprintf(addReply, padding);
+            }else{
+                const { cachedValue } = options[subCommandGroup];
+                const { value, padding } = options[subCommandGroup]["removeValue"](interaction);
+                if (!cachedValue.includes(value)) reply = "Please feed a valid input.";
+                else{
+                    const update = cachedValue.filter((element) => (element != value));
+                    await updateDb(subCommandGroup, update);
+                    myCache.set("GuildSetting", {
+                        ...cached,
+                        [subCommandGroup]: update
+                    })
+                }
+                reply = sprintf(removeReply, padding)
+            }         
+
+            return interaction.followUp({
+                content: reply
+            })
+            
         }
     }
 

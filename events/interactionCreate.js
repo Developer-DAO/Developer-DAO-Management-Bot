@@ -19,11 +19,11 @@ module.exports = {
             const command = interaction.client.commands.get(interaction.commandName);
             
             if (myCache.has("GuildSetting")){
-                const { access_role, access_member, access_command } = myCache.get("GuildSetting");
-                if (access_command.includes(interaction.commandName)){
+                const { admin_role, admin_member, admin_command } = myCache.get("GuildSetting");
+                if (admin_command.includes(interaction.commandName)){
                     if (
-                        !access_member.includes(interaction.member.id) 
-                        && _.intersection(access_role, interaction.member.roles.cache.keys()).length == 0
+                        !admin_member.includes(interaction.member.id) 
+                        && _.intersection(admin_role, interaction.member.roles.cache.keys()).length == 0
                     ){
                         return interaction.reply({
                             content: "Sorry, you don't have permission to run this command. Please contact community manager.",
@@ -61,11 +61,7 @@ module.exports = {
         if(interaction.isButton()){
 
             const button = interaction.client.buttons.get(interaction.customId)
-
-            if(!button) return interaction.reply({
-                content: "Sorry, you chose a non-existent button.",
-                ephemeral: true
-            })
+            if(!button) return;
 
             try{
                 await button.execute(interaction);

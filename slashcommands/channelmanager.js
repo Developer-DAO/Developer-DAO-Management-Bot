@@ -1,7 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { ChannelType, ComponentType } = require("discord-api-types/payloads/v10");
 const { CommandInteraction, MessageEmbed, MessageActionRow, MessageButton } = require("discord.js");
-const { commandRunCheck, updateDb, awaitWrapSendRequest, awaitWrap } = require('../helper/util');
+const { commandRunCheck, updateDb, awaitWrapSendRequest, awaitWrap, getParentInform } = require('../helper/util');
 const { sprintf } = require('sprintf-js');
 const CONSTANT = require("../helper/const");
 const myCache = require("../helper/cache");
@@ -107,10 +107,16 @@ module.exports = {
                     await interaction.followUp({
                         content: "Channel init starts, please wait for a while."
                     })
-                    await this.fetchChannelWithoutDescription(interaction);
-                    return interaction.editReply({
-                        content: "Channel init is done. Please run \`/channelmanager view\` again to output results"
-                    }) 
+                    try{
+                        await this.fetchChannelWithoutDescription(interaction);
+                        return interaction.editReply({
+                            content: "Channel init is done. Please run \`/channelmanager view\` again to output results"
+                        }) 
+                    }catch(err){
+                        return interaction.editReply({
+                            content: "Error occurs when channel init, please contact admins."
+                        }) 
+                    }
                 }
 
                 const replyMsg = await interaction.followUp({
@@ -158,10 +164,16 @@ module.exports = {
                                 content: "Channel init starts, please wait for a while.",
                                 components: []
                             });
-                            await this.fetchChannelWithoutDescription(interaction);
-                            return interaction.editReply({
-                                content: "Channel init is done. Please run \`/channelmanager view\` again to output results"
-                            })
+                            try{
+                                await this.fetchChannelWithoutDescription(interaction);
+                                return interaction.editReply({
+                                    content: "Channel init is done. Please run \`/channelmanager view\` again to output results"
+                                }) 
+                            }catch(err){
+                                return interaction.editReply({
+                                    content: "Error occurs when channel init, please contact admins."
+                                }) 
+                            }
                         }
                     }
                 });
@@ -228,7 +240,7 @@ module.exports = {
                             content: "Broadcast is going on, please wait patiently.",
                             components: changedComponents
                         });
-                        const predefinedMsg = sprintf(CONSTANT.EMBED_STRING.DESCRIPTION, `<t:${Math.floor(new Date().getTime() / 1000) + 3600 * 48}:R>`);
+                        const predefinedMsg = sprintf(CONSTANT.EMBED_STRING.DESCRIPTION, `<t:${Math.floor(new Date().getTime() / 1000) + parseInt(CONSTANT.BOT_NUMERICAL_VALUE.EXPIRY_TIME)}:R>`);
                         const sendMsgRequestArray = [];
                         const unfetchableChannelNameArray = [];
                         let unfetchableChannelNameContent = '';
@@ -285,13 +297,13 @@ module.exports = {
                                         ...cached[parentId][channelId],
                                         status: true,
                                         messageId: broadcastResult[channelId].messageId,
-                                        timestamp: broadcastResult[channelId].timestamp,
+                                        timestamp: broadcastResult[channelId].timestamp + CONSTANT.BOT_NUMERICAL_VALUE.EXPIRY_TIME,
                                         lastMessageTimestamp: broadcastResult[channelId].timestamp
                                     }
                                 }
                             })
                         });
-
+                        await updateDb("channelsWithoutTopic", cached);
                         myCache.set("ChannelsWithoutTopic", cached);
 
                         return interaction.editReply({
@@ -372,6 +384,14 @@ module.exports = {
                         ephemeral: true
                     })
                 }
+                await interaction.deferReply({ ephemeral: true });
+                const { result, error } = await awaitWrap(targetChannel.send({
+                    content: "This channel has been set as Notification Channel"
+                }))
+
+                if (error) return interaction.followUp({
+                    content: `Missing Permission: Check permission of this <#${targetChannel.id}>`
+                })
 
                 await updateDb("notification_channel", targetChannel.id)
                 
@@ -379,10 +399,8 @@ module.exports = {
                     ...myCache.get("GuildSetting"),
                     notification_channel: targetChannel.id
                 })
-                await targetChannel.send({
-                    content: "This channel has been set as Notification Channel"
-                })
-                return interaction.reply({
+
+                return interaction.followUp({
                     content: sprintf("<#%s> is set as Notification Channel", targetChannel.id),
                     ephemeral: true
                 })
@@ -446,7 +464,7 @@ module.exports = {
                             channelId: channelId,
                             messageId: channels[channelId].messageId,
                         })
-                        statusField = statusField.concat(`> [Sent](${messageLink}) (<t:${channels[channelId].timestamp}:R>)\n`);
+                        statusField = statusField.concat(`> [Archived](${messageLink}) <t:${channels[channelId].timestamp}:R>\n`);
                     }else{
                         statusField = statusField.concat("> \`Unsent\`\n");
                     }
@@ -531,7 +549,7 @@ module.exports = {
                         embeds: embedContentArray[page],
                         components: buttonGenerator(page),
                     });
-                    await btnInteraction.deferUpdate();
+                    return btnInteraction.deferUpdate();
                 });
 
                 collector.on("end", async(collected) => {
@@ -574,42 +592,56 @@ module.exports = {
      */
     async fetchChannelWithoutDescription(interaction){
         let channels = await interaction.guild.channels.fetch();
-        const result = {}
+        const scanResult = {}
         channels = channels.filter((channel) => (
             channel.type == "GUILD_TEXT" && !channel.topic 
         ));
-        for (const channel of channels.values()){
-            const messages = await channel.messages.fetch({
+        let channelInform = [];
+        let fetchMsgPromise = [];
+        Array.from(channels.values()).forEach((channel) => {
+            fetchMsgPromise.push(awaitWrap(channel.messages.fetch({
                 limit: 1
-            });
+            }), "messages"));
+            channelInform.push({
+                channelId: channel.id,
+                channelName: channel.name,
+                ...getParentInform(channel.parentId, channel.parent)
+            })
+        });
+        const results = await Promise.all(fetchMsgPromise);
+        results.forEach((result, index) => {
+            const { error, messages } = result;
             let lastMsgTime;
-            if (messages.size == 0) lastMsgTime = 0;
-            else lastMsgTime = Math.floor(messages.first().createdTimestamp / 1000);
-            const parentId = channel.parentId ?? CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTID;
-            if (parentId in result){
-                result[parentId][channel.id] = {
-                    channelName: channel.name,
+            if (error) lastMsgTime = 0;
+            else {
+                if (messages.size == 0) lastMsgTime = 0;
+                else lastMsgTime = Math.floor(messages.first().createdTimestamp / 1000);
+            }
+            const { channelId, parentId, parentName, channelName } = channelInform[index];
+            if (parentId in scanResult){
+                scanResult[parentId][channelId] = {
+                    channelName: channelName,
                     status: false,
                     messageId: "",
                     timestamp: 0,
                     lastMessageTimestamp: lastMsgTime
                 }
             }else{
-                result[parentId] = {
-                    parentName: parentId != 
-                        CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTID ? channel.parent.name : CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTNAME
+                scanResult[parentId] = {
+                    parentName: parentName
                 };
-                result[parentId][channel.id] = {
-                    channelName: channel.name,
+                scanResult[parentId][channelId] = {
+                    channelName: channelName,
                     status: false,
                     messageId: "",
                     timestamp: 0,
                     lastMessageTimestamp: lastMsgTime
                 }
             }
-        }
-        await updateDb("channelsWithoutTopic", result);
-        myCache.set("ChannelsWithoutTopic", result);
+
+        })
+        await updateDb("channelsWithoutTopic", scanResult);
+        myCache.set("ChannelsWithoutTopic", scanResult);
     }
 
 }

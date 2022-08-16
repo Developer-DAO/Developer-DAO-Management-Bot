@@ -18,7 +18,7 @@ module.exports = {
                 index: index + 1,
                 timestamp: convertTimeStamp(value.timestamp),
                 hostName: value.hostName
-            })));
+            }))).slice(0, CONSTANT.BOT_NUMERICAL_VALUE.AUTO_COMPLETE_OPTIONS_LIMIT);
 
             if (choices.length == 0) return interaction.respond([{ name: "No onboarding call schedule", value: "-1" }])
 

@@ -1,6 +1,6 @@
 const { GuildChannel, DMChannel, MessageEmbed, MessageActionRow, MessageButton } = require("discord.js");
 const { sprintf } = require("sprintf-js");
-const { updateDb } = require("../helper/util");
+const { updateDb, getParentInform, awaitWrap } = require("../helper/util");
 const myCache = require('../helper/cache');
 const CONSTANT = require("../helper/const");
 require("dotenv").config()
@@ -59,17 +59,16 @@ module.exports = {
             && !newChannel.topic 
             && !achieveChannels.includes(newChannel.parentId)
         ){
-            const parentId = newChannel.parentId ?? CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTID;
-            const parentName = parentId != 
-                CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTID ? newChannel.parent.name : CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTNAME;
-            console.log(oldChannel, newChannel)
-            const messages = await newChannel.messages.fetch({
+            const {parentId, parentName} = getParentInform(newChannel.parentId, newChannel.parent);
+            const { messages, error } = await awaitWrap(newChannel.messages.fetch({
                 limit: 1
-            });
+            }), "messages");
             let lastMsgTime;
-            if (messages.size == 0) lastMsgTime = 0;
-            else lastMsgTime = Math.floor(messages.first().createdTimestamp / 1000);
-
+            if (error) lastMsgTime = 0;
+            else{
+                if (messages.size == 0) lastMsgTime = 0;
+                else lastMsgTime = Math.floor(messages.first().createdTimestamp / 1000);
+            }
             cached[parentId][newChannel.id] = {
                 channelName: newChannel.name,
                 status: false,
