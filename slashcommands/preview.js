@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { CommandInteraction, MessageEmbed } = require("discord.js");
 const CONSTANT = require("../helper/const");
+const { getNotificationMsg } = require('../helper/util');
 const sprintf = require("sprintf-js").sprintf
 require("dotenv").config();
 
@@ -20,11 +21,8 @@ module.exports = {
      * @param  {CommandInteraction} interaction
      */
     async execute(interaction) {
-        const descriptionEmebed = new MessageEmbed()
-            .setTitle(sprintf(CONSTANT.EMBED_STRING.TITLE, interaction.channel.name))
-            .setDescription(sprintf(CONSTANT.EMBED_STRING.DESCRIPTION, `<t:${Math.floor(new Date().getTime() / 1000) + 3600 * 48}:R>`))
         return interaction.reply({
-            embeds: [descriptionEmebed],
+            content: getNotificationMsg(interaction.channel.id, Math.floor(new Date().getTime() / 1000) + CONSTANT.BOT_NUMERICAL_VALUE.EXPIRY_TIME),
             ephemeral: true
         })
     }

@@ -2,7 +2,7 @@ const { ButtonInteraction} = require("discord.js");
 const { sprintf } = require("sprintf-js");
 const myCache = require("../helper/cache");
 const CONSTANT = require("../helper/const");
-const { awaitWrap, updateDb } = require("../helper/util");
+const { awaitWrap, updateDb, getParentInform, getNotificationMsg } = require("../helper/util");
 require('dotenv').config();
 
 module.exports = {
@@ -11,21 +11,30 @@ module.exports = {
      * @param  {ButtonInteraction} interaction
      */
     async execute(interaction){
+        
+        if (!myCache.has("ChannelsWithoutTopic")) return interaction.reply({
+            content: "Sorry, some error occured in data side.",
+            ephemeral: true
+        });
+        const message = interaction.message;
+        const embedFields = message.embeds[0].fields;
+        const channelId = embedFields.filter((value) => value.name == "Channel")[0].value.slice(2, -1);
+        const targetChannel = interaction.guild.channels.cache.get(channelId);
+        if (!targetChannel) return interaction.reply({
+            content: "Sorry, this channel is unfetchable",
+            ephemeral: true
+        })
+
+        let cached = myCache.get("ChannelsWithoutTopic");
+        const { parentId, parentName } = getParentInform(targetChannel.parentId, targetChannel.parent);
+        
         if (interaction.customId == this.customId[0]){
-            if (!myCache.has("ChannelsWithoutTopic")) return interaction.reply({
-                content: "Sorry, some error occured in data side.",
+            await interaction.deferReply({
                 ephemeral: true
             });
-            const message = interaction.message;
-            const embedFields = message.embeds[0].fields;
-            const channelId = embedFields.filter((value) => value.name == "Channel")[0].value.slice(2, -1);
-            const targetChannel = interaction.guild.channels.cache.get(channelId);
-            if (!targetChannel) return interaction.reply({
-                content: "Sorry, this channel is unfetchable",
-                ephemeral: true
-            })
+
             const { msg, error } = await awaitWrap(targetChannel.send({
-                content: sprintf(CONSTANT.EMBED_STRING.DESCRIPTION, `<t:${Math.floor(new Date().getTime() / 1000) + 3600 * 48}:R>`)
+                content: getNotificationMsg(channelId, Math.floor(new Date().getTime() / 1000) + CONSTANT.BOT_NUMERICAL_VALUE.EXPIRY_TIME)
             }), "msg");
 
             if (error) return interaction.reply({
@@ -33,20 +42,12 @@ module.exports = {
                 ephemeral: true
             })
 
-            await interaction.deferReply({
-                ephemeral: true
-            });
-
             const timestamp = Math.floor(msg.createdTimestamp / 1000);
-            let cached = myCache.get("ChannelsWithoutTopic");
-            const parentId = targetChannel.parentId ?? CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTID;
-            const parentName = parentId != 
-                CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTID ? targetChannel.parent.name : CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTNAME;
             cached[parentId][channelId] = {
                 channelName: targetChannel.name,
                 status: true,
                 messageId: msg.id,
-                timestamp: timestamp,
+                timestamp: timestamp + CONSTANT.BOT_NUMERICAL_VALUE.EXPIRY_TIME,
                 lastMessageTimestamp: timestamp
             };
             cached[parentId]["parentName"] = parentName;
@@ -64,6 +65,16 @@ module.exports = {
                 content: `Message has been sent to <#${channelId}>. [Message Link](${messageLink})`
             })
         }
+
+        if (interaction.customId == this.customId[1]){
+            await interaction.deferReply({ ephemeral: true })
+            delete cached[parentId][channelId];
+            myCache.set("ChannelsWithoutTopic", cached);
+            await updateDb("channelsWithoutTopic", cached);
+
+            return interaction.followUp({
+                content: "Record of this channel has been deleted."
+            })
+        }
     }
-   
 }

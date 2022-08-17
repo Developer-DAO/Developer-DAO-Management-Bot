@@ -11,6 +11,7 @@ module.exports = {
      * @param  { DMChannel | GuildChannel } newChannel
      */
     async execute(newChannel) {
+        //to-do lack permission causes in Crush try to add a catch try
         if (!myCache.has("ChannelsWithoutTopic") || !myCache.has("GuildSetting")) return
         const achieveChannels = myCache.get("GuildSetting").archive_category_channel;
         if (

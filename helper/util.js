@@ -149,6 +149,13 @@ function getParentInform(parentId, parentObj){
     }
 }
 
+function getNotificationMsg(channelId, timestamp){
+    return sprintf(CONSTANT.CONTENT.NOTIFICATION_MSG, {
+        channelId: channelId,
+        timestamp: timestamp
+    })
+}
+
 
 module.exports = { 
     awaitWrap, 
@@ -161,4 +168,5 @@ module.exports = {
     updateDb, 
     commandRunCheck, 
     getParentInform,
+    getNotificationMsg
 }

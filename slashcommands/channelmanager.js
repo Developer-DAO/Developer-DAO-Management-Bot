@@ -1,10 +1,12 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { ChannelType, ComponentType } = require("discord-api-types/payloads/v10");
+const { ChannelType, ComponentType, PermissionFlagsBits } = require("discord-api-types/payloads/v10");
 const { CommandInteraction, MessageEmbed, MessageActionRow, MessageButton } = require("discord.js");
-const { commandRunCheck, updateDb, awaitWrapSendRequest, awaitWrap, getParentInform } = require('../helper/util');
+const { commandRunCheck, updateDb, awaitWrapSendRequest, awaitWrap, getParentInform, getNotificationMsg } = require('../helper/util');
 const { sprintf } = require('sprintf-js');
+
 const CONSTANT = require("../helper/const");
 const myCache = require("../helper/cache");
+const _ = require("lodash")
 
 require("dotenv").config()
 
@@ -37,7 +39,6 @@ module.exports = {
                                     .setDescription("The channel category for archive")
                                     .addChannelTypes(ChannelType.GuildCategory)
                                     .setRequired(true)))
-                
             )
             .addSubcommandGroup(group =>
                 group.setName("view")
@@ -48,10 +49,10 @@ module.exports = {
                     .addSubcommand(command =>
                         command.setName("category")
                             .setDescription("Read channel status of a category channel")
-                            .addChannelOption(option =>
+                            .addStringOption(option =>
                                 option.setName("channel")
                                     .setDescription("The channel category")
-                                    .addChannelTypes(ChannelType.GuildCategory)
+                                    .setAutocomplete(true)
                                     .setRequired(true)))
             )
             .addSubcommand(command =>
@@ -69,7 +70,11 @@ module.exports = {
                     .addChannelOption(option =>
                         option.setName("channel")
                             .setDescription("Send predefiend messages to this channel and update channel status")
+                            .addChannelTypes(ChannelType.GuildText)
                             .setRequired(true)))
+            .addSubcommand(command =>
+                command.setName("archive")
+                    .setDescription("Archive all channels"))
     },
 
     /**
@@ -187,12 +192,10 @@ module.exports = {
 
         if (interaction.options.getSubcommand() == "broadcast"){
             const checkResult = commandRunCheck();
-            if (checkResult){
-                return interaction.reply({
-                    content: checkResult,
-                    ephemeral: true
-                })
-            }
+            if (checkResult) return interaction.reply({
+                content: checkResult,
+                ephemeral: true
+            })
             await interaction.deferReply({ ephemeral: true });
 
             const replyMsg = await interaction.followUp({
@@ -240,7 +243,6 @@ module.exports = {
                             content: "Broadcast is going on, please wait patiently.",
                             components: changedComponents
                         });
-                        const predefinedMsg = sprintf(CONSTANT.EMBED_STRING.DESCRIPTION, `<t:${Math.floor(new Date().getTime() / 1000) + parseInt(CONSTANT.BOT_NUMERICAL_VALUE.EXPIRY_TIME)}:R>`);
                         const sendMsgRequestArray = [];
                         const unfetchableChannelNameArray = [];
                         let unfetchableChannelNameContent = '';
@@ -258,7 +260,7 @@ module.exports = {
                                 else {
                                     sendMsgRequestArray.push(
                                         awaitWrapSendRequest(
-                                            channel.send({ content: predefinedMsg }),
+                                            channel.send({ content: getNotificationMsg(channel.id, Math.floor(new Date().getTime() / 1000) + CONSTANT.BOT_NUMERICAL_VALUE.EXPIRY_TIME) }),
                                             channel.id
                                         )
                                     )
@@ -333,45 +335,212 @@ module.exports = {
         //to-do unchecked
         if (interaction.options.getSubcommand() == "send"){
             const checkResult = commandRunCheck();
-            if (checkResult) return interaction.followUp({
-                content: checkResult
+            if (checkResult) return interaction.reply({
+                content: checkResult,
+                ephemeral: true
             })
 
             const targetChannel = interaction.options.getChannel("channel");
-            if (targetChannel.type != "GUILD_TEXT") return interaction.followUp({
-                content: "Sorry, you have to choose an Text channel"
-            })
 
             const parentId = targetChannel.parentId ?? CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTID;
-            const cached = myCache.get("ChannelsWithoutTopic");
+            let cached = myCache.get("ChannelsWithoutTopic");
 
-            if (!cached[parentId] || !cached[parentId][targetChannel.id]) return interaction.followUp({
-                content: "Sorry, this channel is not under management."
+            if (!cached[parentId] || !cached[parentId][targetChannel.id]) return interaction.reply({
+                content: "Sorry, this channel is not under management.",
+                ephemeral: true
             })
-
-            const channelRecord = cached[parentId][targetChannel.id];
             await interaction.deferReply({ ephemeral: true });
 
             const result = await awaitWrapSendRequest(targetChannel.send({
-                content: sprintf(CONSTANT.EMBED_STRING.DESCRIPTION, `<t:${Math.floor(new Date().getTime() / 1000) + 3600 * 48}:R>`)
-            }))
+                content: getNotificationMsg(targetChannel.id, Math.floor(new Date().getTime() / 1000) + CONSTANT.BOT_NUMERICAL_VALUE.EXPIRY_TIME)
+            }), targetChannel.id)
 
             if (result.error) return interaction.followUp({
                 content: "Sorry, I cannot send message to this channel"
             })
 
-            //to-do re-setup timer
             cached[parentId][targetChannel.id] = {
-                ...channelRecord,
+                channelName: targetChannel.name,
                 status: true,
-                messageId: message.id,
-                timestamp: Math.floor(message.createdTimestamp / 1000)
+                messageId: result.messageId,
+                timestamp: result.value + CONSTANT.BOT_NUMERICAL_VALUE.EXPIRY_TIME,
+                lastMessageTimestamp: result.value
             }
 
-            //await updateDb("channelsWithoutTopic", cached);
+            await updateDb("channelsWithoutTopic", cached);
             myCache.set("ChannelsWithoutTopic", cached);
-            return
+            const messageLink = sprintf(CONSTANT.LINK.DISCORD_MSG, {
+                guildId: interaction.guild.id,
+                channelId: targetChannel.id,
+                messageId: result.messageId,
+            })
+            return interaction.followUp({
+                content: `Message has been sent to <#${targetChannel.id}>, click [here](${messageLink}) to check the message.`
+            })
         }
+
+        if (interaction.options.getSubcommand() == "archive"){
+            //to-do archive channel permission checking
+            const checkResult = commandRunCheck();
+            if (checkResult) return interaction.reply({
+                content: checkResult,
+                ephemeral: true
+            });
+            //to-do auto archive
+            const { 
+                notification_channel, 
+                archive_channels, 
+                archive_status, 
+                archive_category_channel 
+            } = myCache.get("GuildSetting");
+
+            if (!notification_channel) return interaction.reply({
+                content: "Please set up a notification channel first",
+                ephemeral: true
+            })
+            const guildChannelManager = interaction.guild.channels;
+            let cached = myCache.get("ChannelsWithoutTopic");
+            const current = Math.floor(new Date().getTime() / 1000);
+            let toBeArchived = [];
+            for (const parentId in cached){
+                const channels = cached[parentId];
+                toBeArchived.push(
+                    ...Object.keys(channels).filter((channelId) => {
+                        if (channelId == "parentName") return false;
+                        if (channels[channelId].timestamp != 0 && current > channels[channelId].timestamp) return true;
+                        else return false
+                    }).map((channelId) => ({
+                        parentId: parentId,
+                        channelId: channelId
+                    }))
+                )
+            };
+            if (toBeArchived.length == 0) return interaction.reply({
+                content: "No channel needs to be archived.",
+                ephemeral: true
+            })
+
+            const length = toBeArchived.length;
+            const notificationChannel = guildChannelManager.cache.get(notification_channel);
+            const limit = CONSTANT.BOT_NUMERICAL_VALUE.ARCHIVE_CHANNEL_CHILD_LIMIT;
+            let counter = 0;
+            let failChannels = [], successChannels = [];
+            await interaction.deferReply({ ephemeral: true });
+            while (true){
+                const archiveChanneJSON = _.last(archive_channels);
+                let remainingSpace, targetArchieveChannelId;
+                if (!archiveChanneJSON || archiveChanneJSON.remaining == 0){
+                    const archiveChannel = await guildChannelManager.create(sprintf(CONSTANT.CONTENT.ARCHIVE_CHANNEL_NAME_TEMPLATE, archive_channels.length + 1), {
+                        type: "GUILD_CATEGORY",
+                        permissionOverwrites: [
+                            {
+                                id: interaction.guild.id,
+                                deny: [PermissionFlagsBits.ViewChannel]
+                            }
+                            //to-do deny dev to view this channel
+                        ]
+                    });
+                    archive_channels.push({
+                        id: archiveChannel.id,
+                        remaining: limit
+                    });
+                    targetArchieveChannelId = archiveChannel.id;
+                    remainingSpace = limit;
+                }else{
+                    targetArchieveChannelId = archiveChanneJSON.id
+                    remainingSpace = archiveChanneJSON.remaining;
+                }
+                let moveCounter = 0;
+                for (const { parentId, channelId } of toBeArchived.slice(counter, counter + remainingSpace)){
+                    const channel = guildChannelManager.cache.get(channelId);
+                    if (!channel) return failChannels.push({
+                        parentId: parentId,
+                        channelId: channelId
+                    })
+
+                    const { result, error } = await awaitWrap(channel.setParent(targetArchieveChannelId, {
+                        lockPermissions: true,
+                        reason: "Inactive Channel"
+                    }));
+
+                    if (error) return failChannels.push({
+                        parentId: parentId,
+                        channelId: channelId,
+                    })
+
+                    successChannels.push({
+                        parentId: parentId,
+                        channelId: channelId,
+                        currentParentId: targetArchieveChannelId
+                    })
+                    moveCounter ++;
+                }
+                archive_channels.splice(archive_channels.length - 1, 1, {
+                    id: targetArchieveChannelId,
+                    remaining: remainingSpace - moveCounter
+                });
+                if ( counter + remainingSpace > length ) break;
+                counter += remainingSpace;
+            }
+
+            const toBeCachedArchiveCategoryChannel = _.uniq([...archive_category_channel, ...archive_channels.map(({id}) => (id))]);
+            await updateDb("archive_channels", archive_channels);
+            await updateDb("archive_category_channel", toBeCachedArchiveCategoryChannel);
+            myCache.set("GuildSetting", {
+                ...myCache.get("GuildSetting"),
+                archive_channels: archive_channels,
+                archive_category_channel: toBeCachedArchiveCategoryChannel
+            });
+
+            cached = myCache.get("ChannelsWithoutTopic");
+            successChannels.forEach(({ parentId, channelId }) => {
+                delete cached[parentId][channelId];
+            });
+            await updateDb("channelsWithoutTopic", cached);
+            myCache.set("ChannelsWithoutTopic", cached);
+
+            let failChannelsField = '> -', failChannelsParentsField = '> -';
+            let successChannelsField = '> -', successChannelsParentsField = '> -', successChannelsPreviousParentsField = '> -';
+            successChannels.forEach(({ parentId, channelId, currentParentId }, index) => {
+                if (index == 0) {
+                    successChannelsField = '';
+                    successChannelsParentsField = '';
+                    successChannelsPreviousParentsField = '';
+                };
+                successChannelsField += `<#${channelId}>\n`;
+                successChannelsParentsField += `<#${currentParentId}>\n`;
+                successChannelsPreviousParentsField += `<#${parentId}>\n`;
+            })
+            failChannels.forEach(({parentId, channelId}, index) => {
+                if (index == 0) {
+                    failChannelsField = '';
+                    failChannelsParentsField = '';
+                }
+                failChannelsField += `<#${channelId}>\n`; 
+                failChannelsParentsField += `<#${parentId}>\n`; 
+            });
+            //to-do consider the bytes exceeding the limit partition needed
+            await notificationChannel.send({
+                embeds: [
+                    new MessageEmbed()
+                        .setTitle("Archive Success Report")
+                        .addFields([
+                            { name: 'Channel', value: successChannelsField, inline: true },
+                            { name: 'Current Parent', value: successChannelsParentsField, inline: true },
+                            { name: 'Previous Parent', value: successChannelsPreviousParentsField, inline: true },
+                        ]),
+                    new MessageEmbed()
+                        .setTitle("Archive Fail Report")
+                        .addFields([
+                            { name: 'Channel', value: failChannelsField, inline: true },
+                            { name: 'Current Parent', value: failChannelsParentsField, inline: true },
+                        ]),
+                ]
+            })
+            return interaction.followUp({
+                content: `Done, results has been sent to <#${notification_channel}>`
+            })
+        }   
 
         if (interaction.options.getSubcommandGroup() == "set"){
             const subCommandName = interaction.options.getSubcommand();
@@ -391,6 +560,10 @@ module.exports = {
 
                 if (error) return interaction.followUp({
                     content: `Missing Permission: Check permission of this <#${targetChannel.id}>`
+                })
+
+                if (!targetChannel.topic) return interaction.followUp({
+                    content: `<#${targetChannel.id}> does not have a topic. Please choose a channel with Topic.`
                 })
 
                 await updateDb("notification_channel", targetChannel.id)
@@ -434,15 +607,15 @@ module.exports = {
 
         //Partition for one category, like maybe one category have many channels without description, it may exceed byte limits
         if (interaction.options.getSubcommandGroup() == "view"){
+            const checkResult = commandRunCheck();
+            if (checkResult) return interaction.reply({
+                content: checkResult,
+                ephemeral: true
+            })
+
             const subCommandName = interaction.options.getSubcommand();
             await interaction.deferReply({ ephemeral: true });
             const selected = myCache.get("ChannelsWithoutTopic");
-            if (Object.keys(selected).length == 0){
-                return interaction.followUp({
-                    content: "Please init channel management first using \`/channelmanager init\`"
-                })
-            }
-
             const embedFieldsFactory = (channels) => {
                 let channelField = '', lasMsgTimeField = '', statusField = '';
                 Object.keys(channels).forEach((channelId) => {
@@ -498,7 +671,8 @@ module.exports = {
                                     .setCustomId("first")
                                     .setLabel("First Page")
                                     .setEmoji("⏮️")
-                                    .setStyle("PRIMARY"),
+                                    .setStyle("PRIMARY")
+                                    .setDisabled(index == 0),
                                 new MessageButton()
                                     .setCustomId("previous")
                                     .setEmoji("⬅️")
@@ -514,6 +688,7 @@ module.exports = {
                                     .setLabel("Last Page")
                                     .setEmoji("⏭️")
                                     .setStyle("PRIMARY")
+                                    .setDisabled(index == embedContentArray.length - 1)
                             ])
                     ]
                 };
@@ -545,6 +720,7 @@ module.exports = {
                         case "last":
                             page = embedContentArray.length - 1;
                     }
+                    //to-do partition
                     await interaction.editReply({
                         embeds: embedContentArray[page],
                         components: buttonGenerator(page),
@@ -558,17 +734,12 @@ module.exports = {
                         components: []
                     })
                 })
-
             }else{
-                //to-do auto String
-                //to-do remember to allow users to check channels without a parent
-                //category channel id
-                const { id } = interaction.options.getChannel("channel");
+                const id = interaction.options.getString("channel");
                 const result = selected[id];
                 if (!result) return interaction.followUp({
-                    content: "Sorry, the category channel you chose does not have channels without description.",
+                    content: "Please input a valid input."
                 })
-
                 const [channelField, lasMsgTimeField, statusField] = embedFieldsFactory(result);
                 return interaction.followUp({
                     embeds: [
@@ -584,6 +755,7 @@ module.exports = {
 
             }
         }
+
     },
 
     //to-do remove bot command
