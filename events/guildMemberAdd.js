@@ -15,13 +15,14 @@ module.exports = {
             const nameLowerCase = name.toLocaleLowerCase();
             const reg_1 = /(Developer\s*DAO)|(DevDAO)/g;
             const reg_2 = /(developer\s*dao)|(devdao)/g;
-            if (name.test(reg_1) || nameLowerCase.test(reg_2)){
+            if (reg_1.test(name) || reg_2.test(nameLowerCase)){
                 await guildMember.ban({
                     days: 7
                 })
+                logger.info(`${guildMember.user.tag} has been banned`);
             }
         }catch(error){
-            return logger.error(`Error: ${err.name} occurs when ${this.name}. Msg: ${err.message} Stack: ${err.stack}`);
+            return logger.error(`Error: ${error.name} occurs when ${this.name}. Msg: ${error.message} Stack: ${error.stack}`);
         }
         
     }

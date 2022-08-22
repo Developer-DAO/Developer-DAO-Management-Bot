@@ -81,8 +81,10 @@ module.exports = {
      * @param  {CommandInteraction} interaction
      */
     async execute(interaction) {
+        const subCommand = interaction.options._subcommand;
+        const subCommandGroup = interaction.options._group;
         //to-do view two version: 1. choose category 2. view all using page style
-        if (interaction.options.getSubcommand() == "read"){
+        if (subCommandGroup == null && interaction.options.getSubcommand() == "read"){
             let { notification_channel, archive_category_channel } = myCache.get("GuildSetting");
             notification_channel = notification_channel ? `<#${notification_channel}>` : "\`Unavailable\`";
 
@@ -103,7 +105,7 @@ module.exports = {
             })
         }
 
-        if (interaction.options.getSubcommand() == "init"){
+        if (subCommandGroup == null && subCommand == "init"){
             await interaction.deferReply({ ephemeral: true });
             const selected = myCache.get("ChannelsWithoutTopic");
             if (Object.keys(selected).length == 0) {
@@ -190,7 +192,7 @@ module.exports = {
             return
         }
 
-        if (interaction.options.getSubcommand() == "broadcast"){
+        if (subCommandGroup == null && subCommand == "broadcast"){
             const checkResult = commandRunCheck();
             if (checkResult) return interaction.reply({
                 content: checkResult,
@@ -333,7 +335,7 @@ module.exports = {
         }
 
         //to-do unchecked
-        if (interaction.options.getSubcommand() == "send"){
+        if (subCommandGroup == null && subCommand == "send"){
             const checkResult = commandRunCheck();
             if (checkResult) return interaction.reply({
                 content: checkResult,
@@ -379,7 +381,7 @@ module.exports = {
             })
         }
 
-        if (interaction.options.getSubcommand() == "archive"){
+        if (subCommandGroup == null && subCommand == "archive"){
             //to-do archive channel permission checking
             const checkResult = commandRunCheck();
             if (checkResult) return interaction.reply({
@@ -547,9 +549,8 @@ module.exports = {
             })
         }   
 
-        if (interaction.options.getSubcommandGroup() == "set"){
-            const subCommandName = interaction.options.getSubcommand();
-            if (subCommandName == "notification"){
+        if (subCommandGroup == "set"){
+            if (subCommand == "notification"){
                 const targetChannel = interaction.options.getChannel("channel");
 
                 if (!targetChannel.topic) return interaction.reply({
@@ -589,7 +590,7 @@ module.exports = {
                 })
             }
 
-            if (subCommandName == "archive"){
+            if (subCommand == "archive"){
 
                 const targetChannel = interaction.options.getChannel("channel");
                 const currentCache = myCache.get("GuildSetting");
@@ -616,14 +617,12 @@ module.exports = {
         }
 
         //Partition for one category, like maybe one category have many channels without description, it may exceed byte limits
-        if (interaction.options.getSubcommandGroup() == "view"){
+        if (subCommandGroup == "view"){
             const checkResult = commandRunCheck();
             if (checkResult) return interaction.reply({
                 content: checkResult,
                 ephemeral: true
             })
-
-            const subCommandName = interaction.options.getSubcommand();
             await interaction.deferReply({ ephemeral: true });
             const selected = myCache.get("ChannelsWithoutTopic");
             const embedFieldsFactory = (channels) => {
@@ -666,7 +665,7 @@ module.exports = {
                 return [channelFields, lastMsgTimeFields, statusFields];
             }
             
-            if (subCommandName == "all"){
+            if (subCommand == "all"){
                 let embedContentArray = [];
                 let pageIndex = 1;
                 Object.keys(selected).forEach((parentId) => {

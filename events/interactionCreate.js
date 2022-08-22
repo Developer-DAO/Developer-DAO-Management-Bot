@@ -23,7 +23,7 @@ module.exports = {
                 if (admin_command.includes(interaction.commandName)){
                     if (
                         !admin_member.includes(interaction.member.id) 
-                        && _.intersection(admin_role, interaction.member.roles.cache.keys()).length == 0
+                        && _.intersection(admin_role, Array.from(interaction.member.roles.cache.keys())).length == 0
                     ){
                         return interaction.reply({
                             content: "Sorry, you don't have permission to run this command. Please contact community manager.",
