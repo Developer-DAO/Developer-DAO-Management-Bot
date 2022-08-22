@@ -115,7 +115,7 @@ module.exports = {
                         content: "Channel init starts, please wait for a while."
                     })
                     try{
-                        await this.fetchChannelWithoutDescription(interaction);
+                        await this.fetchChannelWithoutDescription(interaction, achieveChannels);
                         return interaction.editReply({
                             content: "Channel init is done. Please run \`/channelmanager view\` again to output results"
                         }) 
@@ -172,7 +172,7 @@ module.exports = {
                                 components: []
                             });
                             try{
-                                await this.fetchChannelWithoutDescription(interaction);
+                                await this.fetchChannelWithoutDescription(interaction, myCache.get("GuildSetting").archive_category_channel);
                                 return interaction.editReply({
                                     content: "Channel init is done. Please run \`/channelmanager view\` again to output results"
                                 }) 
@@ -627,7 +627,6 @@ module.exports = {
             const selected = myCache.get("ChannelsWithoutTopic");
             const embedFieldsFactory = (channels) => {
                 let channelFields = [], lastMsgTimeFields = [], statusFields = [];
-                //to-do why limit set 8 but get 7?
                 const limit = CONSTANT.BOT_NUMERICAL_VALUE.EMBED_CONTENT_LIMIT;
                 const length = Object.keys(channels).length;
                 let counter = 0;
@@ -656,10 +655,10 @@ module.exports = {
                             statusField = statusField.concat("> \`Unsent\`\n");
                         }
                     })
+                    if (counter + limit > length) break;
                     channelFields.push(channelField);
                     lastMsgTimeFields.push(lastMsgTimeField);
                     statusFields.push(statusField);
-                    if (counter + limit > length) break;
                     counter += limit;
                 }
                 return [channelFields, lastMsgTimeFields, statusFields];
@@ -788,11 +787,11 @@ module.exports = {
     /**
      * @param  {CommandInteraction} interaction
      */
-    async fetchChannelWithoutDescription(interaction){
+    async fetchChannelWithoutDescription(interaction, archiveChannels){
         let channels = await interaction.guild.channels.fetch();
         const scanResult = {}
         channels = channels.filter((channel) => (
-            channel.type == "GUILD_TEXT" && !channel.topic 
+            channel.type == "GUILD_TEXT" && !channel.topic && !archiveChannels.includes(channel.parentId)
         ));
         let channelInform = [];
         let fetchMsgPromise = [];

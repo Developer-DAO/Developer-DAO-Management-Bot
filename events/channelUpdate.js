@@ -13,7 +13,7 @@ module.exports = {
      * @param  { DMChannel | GuildChannel } newChannel
      */
     async execute(oldChannel, newChannel) {
-        if (!myCache.has("ChannelsWithoutTopic") || !myCache.has("GuildSetting")) return
+        if (!myCache.has("ChannelsWithoutTopic") || !myCache.has("GuildSetting")) return;
         const achieveChannels = myCache.get("GuildSetting").archive_category_channel;
         let cached = myCache.get("ChannelsWithoutTopic");
         if (
@@ -27,9 +27,12 @@ module.exports = {
             const parentId = oldChannel.parentId ?? CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTID;
             const parentName = parentId != 
                 CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTID ? oldChannel.parent.name : CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTNAME;
-            if (cached[parentId][oldChannel.id]){
+
+            if (parentId in cached && cached[parentId][oldChannel.id]){
                 delete cached[parentId][oldChannel.id];
-                cached[parentId]["parentName"] = parentName;
+                if (Object.keys(cached[parentId]).length == 1){
+                    delete cached[parentId];
+                }
                 
                 await updateDb("channelsWithoutTopic", cached);
                 myCache.set("ChannelsWithoutTopic", cached);
@@ -69,13 +72,26 @@ module.exports = {
                 if (messages.size == 0) lastMsgTime = 0;
                 else lastMsgTime = Math.floor(messages.first().createdTimestamp / 1000);
             }
-            cached[parentId][newChannel.id] = {
-                channelName: newChannel.name,
-                status: false,
-                messageId: "",
-                timestamp: 0,
-                lastMessageTimestamp: lastMsgTime
+            if (parentId in cached){
+                cached[parentId][newChannel.id] = {
+                    channelName: newChannel.name,
+                    status: false,
+                    messageId: "",
+                    timestamp: 0,
+                    lastMessageTimestamp: lastMsgTime
+                }
+            }else{
+                cached[parentId] = {
+                    [newChannel.id]: {
+                        channelName: newChannel.name,
+                        status: false,
+                        messageId: "",
+                        timestamp: 0,
+                        lastMessageTimestamp: lastMsgTime
+                    }
+                }
             }
+            
             cached[parentId]["parentName"] = parentName;
             
             await updateDb("channelsWithoutTopic", cached);

@@ -43,13 +43,26 @@ module.exports = {
             })
 
             const timestamp = Math.floor(msg.createdTimestamp / 1000);
-            cached[parentId][channelId] = {
-                channelName: targetChannel.name,
-                status: true,
-                messageId: msg.id,
-                timestamp: timestamp + CONSTANT.BOT_NUMERICAL_VALUE.EXPIRY_TIME,
-                lastMessageTimestamp: timestamp
-            };
+            if (parentId in cached){
+                cached[parentId][channelId] = {
+                    channelName: targetChannel.name,
+                    status: true,
+                    messageId: msg.id,
+                    timestamp: timestamp + CONSTANT.BOT_NUMERICAL_VALUE.EXPIRY_TIME,
+                    lastMessageTimestamp: timestamp
+                };
+            }else{
+                cached[parentId] = {
+                    [channelId]: {
+                        channelName: targetChannel.name,
+                        status: true,
+                        messageId: msg.id,
+                        timestamp: timestamp + CONSTANT.BOT_NUMERICAL_VALUE.EXPIRY_TIME,
+                        lastMessageTimestamp: timestamp
+                    }
+                }
+            }
+            
             cached[parentId]["parentName"] = parentName;
 
             myCache.set("ChannelsWithoutTopic", cached);
@@ -67,14 +80,23 @@ module.exports = {
         }
 
         if (interaction.customId == this.customId[1]){
-            await interaction.deferReply({ ephemeral: true })
-            delete cached[parentId][channelId];
-            myCache.set("ChannelsWithoutTopic", cached);
-            await updateDb("channelsWithoutTopic", cached);
+            await interaction.deferReply({ ephemeral: true });
+            if (parentId in cached && cached[parentId][channelId]){
+                delete cached[parentId][channelId];
+                if (Object.keys(cached[parentId]).length == 1){
+                    delete cached[parentId];
+                }
+                myCache.set("ChannelsWithoutTopic", cached);
+                await updateDb("channelsWithoutTopic", cached);
+
+                return interaction.followUp({
+                    content: "Record of this channel has been deleted."
+                })
+            }
 
             return interaction.followUp({
-                content: "Record of this channel has been deleted."
-            })
+                content: "Error occurs when deleting this record, please report to the admin."
+            })            
         }
     }
 }

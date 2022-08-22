@@ -17,6 +17,8 @@ module.exports = {
     async execute (message){
         if (message.guild){
             const { channel, author } = message;
+            if (!myCache.has("GuildSetting")) return;
+            //to-do error handling
             if (channel.id == myCache.get("GuildSetting").introduction_channel && !author.bot && message.type != "REPLY"){
                 stickyMsgHandler(channel, false);
             }

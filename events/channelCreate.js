@@ -21,13 +21,26 @@ module.exports = {
         ){
             const {parentId, parentName} = getParentInform(newChannel.parentId, newChannel.parent);
             let cached = myCache.get("ChannelsWithoutTopic");
-            cached[parentId][newChannel.id] = {
-                channelName: newChannel.name,
-                status: false,
-                messageId: "",
-                timestamp: 0,
-                lastMessageTimestamp: 0
+            if (parentId in cached){
+                cached[parentId][newChannel.id] = {
+                    channelName: newChannel.name,
+                    status: false,
+                    messageId: "",
+                    timestamp: 0,
+                    lastMessageTimestamp: 0
+                }
+            }else{
+                cached[parentId] = {
+                    [newChannel.id]: {
+                        channelName: newChannel.name,
+                        status: false,
+                        messageId: "",
+                        timestamp: 0,
+                        lastMessageTimestamp: 0
+                    }
+                }
             }
+            
             cached[parentId]["parentName"] = parentName;
             
             await updateDb("channelsWithoutTopic", cached);

@@ -13,15 +13,16 @@ module.exports = {
      */
     async execute( deleteChannel ) {
         if (!myCache.has("ChannelsWithoutTopic") || !myCache.has("GuildSetting")) return
-        
         const parentId = deleteChannel.parentId ?? CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTID;
         const parentName = parentId != 
             CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTID ? deleteChannel.parent.name : CONSTANT.CONTENT.CHANNEL_WITHOUT_PARENT_PARENTNAME;
         let cached = myCache.get("ChannelsWithoutTopic");
-        if (cached[parentId][deleteChannel.id]){
+
+        if (parentId in cached && cached[parentId][deleteChannel.id]){
             delete cached[parentId][deleteChannel.id];
-            cached[parentId]["parentName"] = parentName;
-            
+            if (Object.keys(cached[parentId]).length == 1){
+                delete cached[parentId];
+            }
             await updateDb("channelsWithoutTopic", cached);
             myCache.set("ChannelsWithoutTopic", cached);
 
