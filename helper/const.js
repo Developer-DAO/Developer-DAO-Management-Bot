@@ -28,6 +28,7 @@ const BOT_NUMERICAL_VALUE = Object.freeze({
     AUTO_COMPLETE_OPTIONS_LIMIT: 25,
     EXPIRY_TIME: 1 * 100,
     ARCHIVE_CHANNEL_CHILD_LIMIT: 2,
+    EMBED_CONTENT_LIMIT: 8
 })
 
 const WEEK = Object.freeze([

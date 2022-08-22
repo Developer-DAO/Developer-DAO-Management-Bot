@@ -627,50 +627,67 @@ module.exports = {
             await interaction.deferReply({ ephemeral: true });
             const selected = myCache.get("ChannelsWithoutTopic");
             const embedFieldsFactory = (channels) => {
-                let channelField = '', lasMsgTimeField = '', statusField = '';
-                Object.keys(channels).forEach((channelId) => {
-                    //skip `parentName` key
-                    if (channelId == "parentName") return;
-                    channelField = channelField.concat(`> <#${channelId}>\n`);
+                let channelFields = [], lastMsgTimeFields = [], statusFields = [];
+                //to-do why limit set 8 but get 7?
+                const limit = CONSTANT.BOT_NUMERICAL_VALUE.EMBED_CONTENT_LIMIT;
+                const length = Object.keys(channels).length;
+                let counter = 0;
+                while (true){
+                    let channelField = '', lastMsgTimeField = '', statusField = '';
+                    Object.keys(channels).slice(counter, counter + limit).forEach((channelId) => {
+                        if (channelId == "parentName") return;
+                        channelField = channelField.concat(`> <#${channelId}>\n`);
 
-                    const lastTimestamp = channels[channelId].lastMessageTimestamp;
-                    if (lastTimestamp){
-                        lasMsgTimeField = lasMsgTimeField.concat(`> <t:${lastTimestamp}:R>\n`);
-                    }else{
-                        //fetch failed
-                        lasMsgTimeField = lasMsgTimeField.concat("> \`Unfetchable\`\n");
-                    }
+                        const lastTimestamp = channels[channelId].lastMessageTimestamp;
+                        if (lastTimestamp){
+                            lastMsgTimeField = lastMsgTimeField.concat(`> <t:${lastTimestamp}:R>\n`);
+                        }else{
+                            //fetch failed
+                            lastMsgTimeField = lastMsgTimeField.concat("> \`Unfetchable\`\n");
+                        }
 
-                    if (channels[channelId].status){
-                        const messageLink = sprintf(CONSTANT.LINK.DISCORD_MSG, {
-                            guildId: interaction.guild.id,
-                            channelId: channelId,
-                            messageId: channels[channelId].messageId,
-                        })
-                        statusField = statusField.concat(`> [Archived](${messageLink}) <t:${channels[channelId].timestamp}:R>\n`);
-                    }else{
-                        statusField = statusField.concat("> \`Unsent\`\n");
-                    }
-                });
-                return [channelField, lasMsgTimeField, statusField]
+                        if (channels[channelId].status){
+                            const messageLink = sprintf(CONSTANT.LINK.DISCORD_MSG, {
+                                guildId: interaction.guild.id,
+                                channelId: channelId,
+                                messageId: channels[channelId].messageId,
+                            })
+                            statusField = statusField.concat(`> [Archived](${messageLink}) <t:${channels[channelId].timestamp}:R>\n`);
+                        }else{
+                            statusField = statusField.concat("> \`Unsent\`\n");
+                        }
+                    })
+                    channelFields.push(channelField);
+                    lastMsgTimeFields.push(lastMsgTimeField);
+                    statusFields.push(statusField);
+                    if (counter + limit > length) break;
+                    counter += limit;
+                }
+                return [channelFields, lastMsgTimeFields, statusFields];
             }
             
             if (subCommandName == "all"){
-                const embedContentArray = [];
-                Object.keys(selected).forEach((parentId, index) => {
+                let embedContentArray = [];
+                let pageIndex = 1;
+                Object.keys(selected).forEach((parentId) => {
                     const channels = selected[parentId];
                     const embedTitle = `Channel Category: ${channels.parentName}`;
-                    const [channelField, lasMsgTimeField, statusField] = embedFieldsFactory(channels);
-                    embedContentArray.push([
-                        new MessageEmbed()
-                            .setTitle(embedTitle)
-                            .addFields([
-                                { name: "📣 Channel", value: channelField, inline: true},
-                                { name: "📨 Last Message", value: lasMsgTimeField, inline: true},
-                                { name: "⚙️ Status", value: statusField, inline: true}
-                            ])
-                            .setFooter({ text: `Group ${index + 1}` })
-                        ]);
+                    const [channelFields, lastMsgTimeFields, statusFields] = embedFieldsFactory(channels);
+                    embedContentArray = [
+                        ...embedContentArray,
+                        ...channelFields.map((value, index) => (
+                            [
+                                new MessageEmbed()
+                                    .setTitle(embedTitle)
+                                    .addFields([
+                                        { name: "📣 Channel", value: value, inline: true},
+                                        { name: "📨 Last Message", value: lastMsgTimeFields[index], inline: true},
+                                        { name: "⚙️ Status", value: statusFields[index], inline: true}
+                                    ])
+                                    .setFooter({ text: `Group ${pageIndex ++}` })
+                            ]
+                        ))
+                    ]
                 });
 
                 const buttonGenerator = (index) => {
@@ -750,19 +767,19 @@ module.exports = {
                 if (!result) return interaction.followUp({
                     content: "Please input a valid input."
                 })
-                const [channelField, lasMsgTimeField, statusField] = embedFieldsFactory(result);
+                const [channelFields, lasMsgTimeFields, statusFields] = embedFieldsFactory(result);
+                
                 return interaction.followUp({
-                    embeds: [
-                        new MessageEmbed()
-                            .setTitle(`Channel Category: ${result.parentName}`)
-                            .addFields([
-                                { name: "📣 Channel", value: channelField, inline: true},
-                                { name: "📨 Last Message", value: lasMsgTimeField, inline: true},
-                                { name: "⚙️ Status", value: statusField, inline: true}
-                            ])
-                    ]
-                })
-
+                    embeds: channelFields.map((value, index) => (
+                                new MessageEmbed()
+                                    .setTitle(`Channel Category: ${result.parentName}`)
+                                    .addFields([
+                                        { name: "📣 Channel", value: value, inline: true},
+                                        { name: "📨 Last Message", value: lasMsgTimeFields[index], inline: true},
+                                        { name: "⚙️ Status", value: statusFields[index], inline: true}
+                                    ])
+                            ))
+                    })
             }
         }
 
