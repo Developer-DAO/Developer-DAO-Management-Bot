@@ -387,6 +387,7 @@ module.exports = {
                 ephemeral: true
             });
             //to-do auto archive
+            //to-do using archive_status to auto archive
             const { 
                 notification_channel, 
                 archive_channels, 
@@ -495,6 +496,10 @@ module.exports = {
             cached = myCache.get("ChannelsWithoutTopic");
             successChannels.forEach(({ parentId, channelId }) => {
                 delete cached[parentId][channelId];
+                //Only 'parentName' attribute
+                if (Object.keys(cached[parentId]).length == 1){
+                    delete cached[parentId];
+                }
             });
             await updateDb("channelsWithoutTopic", cached);
             myCache.set("ChannelsWithoutTopic", cached);
@@ -546,6 +551,11 @@ module.exports = {
             const subCommandName = interaction.options.getSubcommand();
             if (subCommandName == "notification"){
                 const targetChannel = interaction.options.getChannel("channel");
+
+                if (!targetChannel.topic) return interaction.reply({
+                    content: "Sorry, you cannot set a channel without description as a notification channel.",
+                    ephemeral: true
+                })
 
                 if (targetChannel.id == myCache.get("GuildSetting").notification_channel){
                     return interaction.reply({

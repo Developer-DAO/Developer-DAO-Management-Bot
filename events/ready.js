@@ -53,7 +53,8 @@ module.exports = {
                     admin_role: guildSnap.data().admin_role ?? [],
                     admin_member: guildSnap.data().admin_member ?? [],
                     admin_command: guildSnap.data().admin_command ?? []
-                }}
+                }},
+                { key: "VoiceContext", val: {} }
             ])
         }else{
 
@@ -67,7 +68,7 @@ module.exports = {
                 archive_status: false,
                 admin_role: [],
                 admin_member: [],
-                admin_command: [] 
+                admin_command: []
             }
             const selected = {}
 
@@ -79,7 +80,8 @@ module.exports = {
             myCache.mset([
                 { key: "ChannelsWithoutTopic", val: selected },
                 { key: "GuildSetting", val: channelInformInit },
-                { key: "OnboardingSchedule", val: [], ttl: CONSTANT.BOT_NUMERICAL_VALUE.ONBOARDING_SCHEDULE_UPDATE_INTERNAL}
+                { key: "OnboardingSchedule", val: [], ttl: CONSTANT.BOT_NUMERICAL_VALUE.ONBOARDING_SCHEDULE_UPDATE_INTERNAL},
+                { key: "VoiceContext", val: {} }
             ])
             logger.info("Database initiated.")
         }

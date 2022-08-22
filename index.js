@@ -9,7 +9,8 @@ const client = new discord.Client({ intents: [
     discord.Intents.FLAGS.GUILD_MESSAGES,
     discord.Intents.FLAGS.GUILD_MEMBERS,
     discord.Intents.FLAGS.GUILD_PRESENCES,
-    discord.Intents.FLAGS.GUILD_MESSAGE_REACTIONS
+    discord.Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
+    discord.Intents.FLAGS.GUILD_VOICE_STATES
 ]});
 
 client.commands = new discord.Collection();

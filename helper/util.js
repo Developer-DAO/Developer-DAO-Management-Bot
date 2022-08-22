@@ -156,6 +156,9 @@ function getNotificationMsg(channelId, timestamp){
     })
 }
 
+function getCurrentTimeMin(){
+    return Math.floor(new Date().getTime() / 1000);
+}
 
 module.exports = { 
     awaitWrap, 
@@ -168,5 +171,6 @@ module.exports = {
     updateDb, 
     commandRunCheck, 
     getParentInform,
-    getNotificationMsg
+    getNotificationMsg,
+    getCurrentTimeMin
 }
