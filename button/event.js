@@ -10,6 +10,7 @@ module.exports = {
      */
     async execute(interaction){
         if (!myCache.has("VoiceContext") || Object.keys(myCache.get("VoiceContext")).length == 0){
+            myCache.set("VoiceContext", {});
             return interaction.reply({
                 content: "Sorry, data error occurs. Please report it to the admin",
                 ephemeral: true
@@ -38,7 +39,7 @@ module.exports = {
         const eligibleAttendees = Object.values(attendee)
             .filter((value) => (value.timestamp !=0 && current - value.timestamp >= duration))
             .map((value) => (value.name));
-        
+        myCache.set("VoiceContext", {});
         if (eligibleAttendees.length == 0) return interaction.followUp({
             content: "Sorry, none of eligible member in this event"
         })
@@ -47,7 +48,7 @@ module.exports = {
         csvContent = eligibleAttendees.reduce((pre, cur) => {
             return pre + cur + "\r\n"
         }, csvContent);
-
+        
         return interaction.followUp({
             files: [
                 {
