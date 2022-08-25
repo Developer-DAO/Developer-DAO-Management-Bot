@@ -66,6 +66,7 @@ module.exports = {
                 };
                 const current = getCurrentTimeMin()
                 voiceChannel.members.forEach((member, memberId) => {
+                    if (member.user.bot) return;
                     toBeCached["attendee"][memberId] = {
                         timestamp: current,
                         name: member.displayName

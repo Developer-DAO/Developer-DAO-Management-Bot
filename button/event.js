@@ -34,10 +34,10 @@ module.exports = {
             components: components
         });
 
-        await interaction.deferReply({ ephemeral:true });
+        await interaction.deferReply({ ephemeral: true });
 
         const eligibleAttendees = Object.values(attendee)
-            .filter((value) => (value.timestamp !=0 && current - value.timestamp >= duration))
+            .filter((value) => (current - value.timestamp >= duration))
             .map((value) => (value.name));
         myCache.set("VoiceContext", {});
         if (eligibleAttendees.length == 0) return interaction.followUp({
