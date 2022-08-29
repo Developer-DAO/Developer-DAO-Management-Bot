@@ -1,6 +1,8 @@
-const { ButtonInteraction} = require("discord.js");
+const { ButtonInteraction, MessageActionRow, MessageButton} = require("discord.js");
 const myCache = require("../helper/cache");
-const { getCurrentTimeMin } = require("../helper/util");
+const { getCurrentTimeMin, awaitWrap } = require("../helper/util");
+const CONSTANT = require("../helper/const");
+const { sprintf } = require("sprintf-js");
 require('dotenv').config();
 
 module.exports = {
@@ -49,12 +51,31 @@ module.exports = {
             return pre + cur + "\r\n"
         }, csvContent);
         
-        return interaction.followUp({
+        const fileMsg = await interaction.channel.send({
             files: [
                 {
                     name: "Eligible_Members.csv",
                     attachment: Buffer.from(csvContent, "utf-8")
                 }
+            ]
+        });
+        const msgLink = sprintf(CONSTANT.LINK.DISCORD_MSG, {
+            guildId: interaction.guild.id,
+            channelId: interaction.channel.id,
+            messageId: fileMsg.id
+        });
+
+        return interaction.followUp({
+            content: `File has been sent to <#${interaction.channel.id}>`,
+            components: [
+                new MessageActionRow()
+                    .addComponents([
+                        new MessageButton()
+                            .setLabel("Link to this file")
+                            .setStyle("LINK")
+                            .setURL(msgLink)
+                            .setEmoji("🔗")
+                    ])
             ]
         })
     }

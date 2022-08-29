@@ -1,16 +1,14 @@
 const { REST } = require('@discordjs/rest');
-const { Routes, PermissionFlagsBits } = require('discord-api-types/v9');
+const { Routes } = require('discord-api-types/v9');
 const { Client } = require("discord.js");
 const { initializeApp } = require('firebase/app')
 const { getFirestore, setDoc, getDoc, doc} = require("firebase/firestore");
 const { stickyMsgHandler } = require('../stickymessage/handler');
 const { checkOnboardingSchedule, awaitWrap } = require('../helper/util');
-const { sprintf } = require('sprintf-js');
 
 const myCache = require('../helper/cache');
 const logger = require("../helper/logger");
 const CONSTANT = require("../helper/const");
-const _ = require("lodash")
 
 require("dotenv").config()
 
