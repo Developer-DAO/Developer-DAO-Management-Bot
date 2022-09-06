@@ -276,6 +276,16 @@ const DOCS = Object.freeze({
         meeetingChannel: "887319375034585098",
         buttonLabel: "Check our Repo",
         emoji: "🖥️",
+    },
+    TH: {
+        channel: "992102856557609073",
+        description: "Monthly DAO-wide, interactive Q&A session - followed by a Quiz 🏆 and a Raffle 🎟",
+        link: "https://discord.com/channels/883478451850473483/1010155397937627247",
+        index: "DAO Sustainability: Town Hall",
+        meeting: "Monthly: The last Friday of each month",
+        meeetingChannel: "1010155397937627247",
+        buttonLabel: "Jump into the Party",
+        emoji: "🎉",
     }
 })
 
