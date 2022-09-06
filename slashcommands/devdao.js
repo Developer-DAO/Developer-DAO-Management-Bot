@@ -43,7 +43,7 @@ module.exports = {
 
         const resEmbed = new MessageEmbed()
             .setTitle(res.index)
-            .setDescription(sprintf("**Channel**: <#%s>\n**Description**: %s\n**Meeting Arrangemnet**: \`%s\`\n**Meeting Channel**: <#%s>",
+            .setDescription(sprintf("**Channel**: <#%s>\n**Description**: %s\n**Meeting Arrangemnet**: %s\n**Meeting Channel**: <#%s>",
                 res.channel, res.description, res.meeting, res.meetingChannel))
             .setThumbnail("https://cdn.discordapp.com/attachments/1003702354882867343/1016275984623865876/unknown.png");
         const resActionRow = new MessageActionRow()

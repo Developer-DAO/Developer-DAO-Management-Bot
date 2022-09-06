@@ -19,21 +19,21 @@ module.exports = {
                 choices = admin_role.map((value) => ({
                     name: interaction.guild.roles.cache.get(value)?.name ?? "Unknow Role",
                     value: value
-                }))
+                })).filter((value) => value.name.includes(focusedOption.value));
                 break;
             case "member":
                 const { admin_member } = myCache.get("GuildSetting");
                 choices = admin_member.map((value) => ({
                     name: interaction.guild.members.cache.get(value)?.displayName,
                     value: value
-                }))
+                })).filter((value) => value.name.includes(focusedOption.value));
                 break;
             case "command":
                 const { admin_command } = myCache.get("GuildSetting");
                 choices = admin_command.map((value) => ({
                     name: value,
                     value: value
-                }))
+                })).filter((value) => value.name.includes(focusedOption.value));
         }
         if (choices.length == 0) return interaction.respond([]);
 
