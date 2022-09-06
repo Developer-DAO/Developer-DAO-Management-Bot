@@ -75,6 +75,14 @@ module.exports = {
             .addSubcommand(command =>
                 command.setName("archive")
                     .setDescription("Archive all channels"))
+            .addSubcommand(command =>
+                command.setName("delete")
+                    .setDescription("Delete channels under a category channel")
+                    .addChannelOption(option =>
+                        option.setName("category")
+                            .setDescription("Choose a category")
+                            .addChannelTypes(ChannelType.GuildCategory)
+                            .setRequired(true)))
     },
 
     /**
@@ -755,8 +763,7 @@ module.exports = {
 
                 collector.on("end", async(collected) => {
                     await interaction.editReply({
-                        embeds: msg.embeds,
-                        components: []
+                        content: "Time Out, please run it again"
                     })
                 })
             }else{
@@ -779,6 +786,42 @@ module.exports = {
                             ))
                     })
             }
+        }
+        if (subCommandGroup == null && subCommand == "delete"){
+            const targetCategory = interaction.options.getChannel("category");
+            if (targetCategory.children.size == 0) {
+                targetCategory.delete();
+                return interaction.reply({
+                    content: `Category Channel \`${targetCategory.name}\` has been deleted`,
+                    ephemeral: true
+                })
+            }
+            // to-do what happens when deleting the category channel first before deleting channels under it
+            await interaction.deferReply({ephemeral: true});
+            let undeletableChannelIds = []
+            const deletePromise = targetCategory.children
+                .filter((channelObj) => {
+                    if (channelObj.deletable) return true
+                    else{
+                        undeletableChannelIds.push(channelObj.id);
+                        return false
+                    }
+                })
+                .map((channelObj) => (channelObj.delete()));
+            const {result, error} = await awaitWrap(Promise.all(deletePromise));
+            if (error) return interaction.followUp({
+                content: "Error occured when deleting channels"
+            })
+            
+            const {result: categoryResult, error: categoryError} = await awaitWrap(targetCategory.delete());
+            
+            if (categoryError) return interaction.followUp({
+                content: "Error occured when deleting channels"
+            })
+
+            return interaction.followUp({
+                content: "Delete Completed."
+            })
         }
 
     },
