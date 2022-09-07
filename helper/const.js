@@ -193,7 +193,7 @@ const DOCS = Object.freeze({
         link: "https://twitter.com/edenprotocolxyz",
         index: "DAO Sustainability: Eden Protocol",
         meeting: "Weekly: Tuesday 4 PM UTC",
-        meetingChannel: "979900319985172570",
+        meetingChannel: "887319067696971826",
         buttonLabel: "Follow us on Twitter",
         emoji: "🌳",
     },
